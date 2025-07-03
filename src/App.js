@@ -1,24 +1,28 @@
-import logo from './logo.svg';
-import './App.css';
+import { Routes, Route } from "react-router-dom";
+import UserLayout from "./components/Users/UserLayout";
+import ApartmentDetail from "./pages/Users/ApartmentDetail";
+import ProductsList from "./pages/Users/ProductsList";
+import Login from "./components/Login";
+import Register from "./components/Register";
+import ForgotPassword from "./components/ForgotPassword";
+import BookingForm from "./pages/Users/BookingForm";
+import CheckoutPage from "./pages/Users/CheckoutPage";
+
+// import các trang khác...
 
 function App() {
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
+    <Routes>
+      <Route path="/login" element={<Login />} />
+      <Route path="/register" element={<Register />} />
+      <Route path="/forgot-password" element={<ForgotPassword/>}/>
+      <Route element={<UserLayout />}>
+        <Route path="/apartment" element={<ApartmentDetail />} />
+        <Route path="/productslist" element={<ProductsList/>}/>
+        <Route path="/booking-form" element={<BookingForm/>}/>
+        <Route path="/checkoutpage" element={<CheckoutPage/>}/>
+      </Route>
+    </Routes>
   );
 }
 
