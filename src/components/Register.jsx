@@ -5,6 +5,7 @@ const Register = () => {
     email: "",
     password: "",
     confirmPassword: "",
+    role: "renter",
   });
   const [error, setError] = useState("");
 
@@ -19,8 +20,7 @@ const Register = () => {
       setError("Mật khẩu xác nhận không khớp.");
       return;
     }
-    // Xử lý đăng ký ở đây (gửi API)
-    alert("Đăng ký thành công!");
+      alert(`Đăng ký thành công với vai trò: ${form.role === "renter" ? "Người đi thuê" : "Chủ căn hộ"}`);
   };
 
   return (
@@ -83,6 +83,21 @@ const Register = () => {
               className="block w-full rounded-lg border-2 border-blue-400 bg-white px-3 py-2 text-base text-gray-900 placeholder:text-gray-400 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 transition"
               placeholder="Nhập lại mật khẩu"
             />
+          </div>
+           <div>
+            <label htmlFor="role" className="block text-sm font-medium text-gray-700 mb-1">
+              Vai trò
+            </label>
+            <select
+              id="role"
+              name="role"
+              value={form.role}
+              onChange={handleChange}
+              className="block w-full rounded-lg border-2 border-blue-400 bg-white px-3 py-2 text-base text-gray-900 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 transition"
+            >
+              <option value="renter">Người đi thuê</option>
+              <option value="owner">Chủ căn hộ</option>
+            </select>
           </div>
           {error && (
             <div className="text-red-500 text-sm text-center">{error}</div>

@@ -20,54 +20,26 @@ const Navbar = () => {
                             <li>
                                 <a
                                     className="text-gray-500 transition hover:text-gray-500/75 dark:text-white dark:hover:text-white/75"
-                                    href="#"
+                                    href="/productslist"
                                 >
-                                    About
+                                    Home
                                 </a>
                             </li>
 
                             <li>
                                 <a
                                     className="text-gray-500 transition hover:text-gray-500/75 dark:text-white dark:hover:text-white/75"
-                                    href="#"
-                                >
-                                    Careers
-                                </a>
-                            </li>
-
-                            <li>
-                                <a
-                                    className="text-gray-500 transition hover:text-gray-500/75 dark:text-white dark:hover:text-white/75"
-                                    href="#"
+                                    href="/history"
                                 >
                                     History
                                 </a>
                             </li>
-
                             <li>
                                 <a
                                     className="text-gray-500 transition hover:text-gray-500/75 dark:text-white dark:hover:text-white/75"
-                                    href="#"
+                                    href="/user-profile"
                                 >
-                                    Services
-                                </a>
-                            </li>
-
-                            <li>
-                                <a
-                                    className="text-gray-500 transition hover:text-gray-500/75 dark:text-white dark:hover:text-white/75"
-                                    href="#"
-                                >
-                                    Projects
-                                </a>
-                            </li>
-
-                            <li>
-                                <a
-                                    className="text-gray-500 transition hover:text-gray-500/75 dark:text-white dark:hover:text-white/75"
-                                    href="#"
-                                >
-                                    Blog
+                                    Profile
                                 </a>
                             </li>
                         </ul>
@@ -77,14 +49,14 @@ const Navbar = () => {
                         <div className="sm:flex sm:gap-4">
                             <a
                                 className="block rounded-md bg-teal-600 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-teal-700 dark:hover:bg-teal-500"
-                                href="#"
+                                href="/login"
                             >
                                 Login
                             </a>
 
                             <a
                                 className="hidden rounded-md bg-gray-100 px-5 py-2.5 text-sm font-medium text-teal-600 transition hover:text-teal-600/75 sm:block dark:bg-gray-800 dark:text-white dark:hover:text-white/75"
-                                href="#"
+                                href="register"
                             >
                                 Register
                             </a>
