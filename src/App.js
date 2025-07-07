@@ -9,7 +9,12 @@ import BookingForm from "./pages/Users/BookingForm";
 import CheckoutPage from "./pages/Users/CheckoutPage";
 import UserProfile from "./pages/Users/UserProfile";
 import History from "./pages/Users/History";
-// import các trang khác...
+import RevenueStats from "./pages/Landlord/RevenueStats";
+import LandLordLayout from "./components/LandLord/LandLordLayout";
+import LandlordDashboard from "./pages/Landlord/LandlordDasboard";
+import ApartmentList from "./pages/Landlord/ApartmentList";
+import BookingHistory from "./pages/Landlord/BookingHistory";
+import Logout from "./pages/Landlord/Logout";
 
 function App() {
   return (
@@ -24,6 +29,14 @@ function App() {
         <Route path="/checkoutpage" element={<CheckoutPage/>}/>
         <Route path="/user-profile" element={<UserProfile/>}/>
         <Route path="/history" element={<History/>}/>
+        
+      </Route>
+      <Route element={<LandLordLayout/>}>
+      <Route path="/apartmentlist" element={<ApartmentList/>}/>
+       <Route path="/revenuestats" element={<RevenueStats/>}/>
+       <Route path="/landlorddashboard" element={<LandlordDashboard/>}/>
+       <Route path="/bookinghistory" element={<BookingHistory/>}/>
+       <Route path="/logout" element={<Logout/>}/>
       </Route>
     </Routes>
   );

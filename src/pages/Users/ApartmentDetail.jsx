@@ -78,12 +78,28 @@ const Button = ({ variant = "default", children, onClick, className = "" }) => {
 };
 
 export default function ApartmentDetail() {
-  const [showBooking, setShowBooking] = useState(false);
   const [liked, setLiked] = useState(false);
   const [thumbsUp, setThumbsUp] = useState(false);
-  const [thumbsDown, setThumbsDown] = useState(false);
   const [selectedImage, setSelectedImage] = useState(0);
+  // ...existing code...
+  const [userRating, setUserRating] = useState(0);
+  const [userReview, setUserReview] = useState('');
+  const [userComment, setUserComment] = useState('');
+  const [comments, setComments] = useState([]);
 
+  const handleSubmitReview = () => {
+    // Xử lý gửi đánh giá (gọi API hoặc cập nhật state)
+    alert(`Bạn đã đánh giá ${userRating} sao: ${userReview}`);
+    setUserRating(0);
+    setUserReview('');
+  };
+
+  const handleSubmitComment = () => {
+    if (userComment.trim() !== '') {
+      setComments(prev => [...prev, userComment]);
+      setUserComment('');
+    }
+  };
   const images = [
     "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800&h=600&fit=crop",
     "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=200&h=200&fit=crop",
@@ -139,17 +155,39 @@ export default function ApartmentDetail() {
                   <TabsTrigger value="comments">Bình luận</TabsTrigger>
                 </TabsList>
 
+                // ...existing code...
+
                 <TabsContent value="feedback">
                   <div className="space-y-4">
+                    {/* Form đánh giá */}
+                    <div className="bg-gray-50 rounded-xl p-4 mb-4">
+                      <p className="font-semibold mb-2 text-gray-700">Đánh giá căn hộ này</p>
+                      <div className="flex items-center mb-2">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <button
+                            key={star}
+                            type="button"
+                            className="focus:outline-none"
+                            onClick={() => setUserRating(star)}
+                          >
+                            <Star className={`w-6 h-6 ${userRating >= star ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`} />
+                          </button>
+                        ))}
+                      </div>
+                      <textarea
+                        className="w-full border rounded-lg px-3 py-2 mb-2 focus:ring-2 focus:ring-blue-400"
+                        rows={3}
+                        placeholder="Chia sẻ cảm nhận của bạn về căn hộ..."
+                        value={userReview}
+                        onChange={e => setUserReview(e.target.value)}
+                      />
+                      <Button onClick={handleSubmitReview}>Gửi đánh giá</Button>
+                    </div>
+                    {/* Danh sách đánh giá */}
                     {[1, 2].map((id) => (
                       <Card key={id} className="hover:shadow-lg transition-shadow duration-200">
                         <CardContent className="p-6">
                           <div className="flex items-center gap-4 mb-4">
-                            <img
-                              src={`https://i.pravatar.cc/150?img=${id}`}
-                              alt="user"
-                              className="w-12 h-12 rounded-full border-2 border-blue-100"
-                            />
                             <div>
                               <p className="font-semibold text-gray-900">Người thuê {id}</p>
                               <div className="flex text-yellow-500 mt-1">
@@ -169,14 +207,30 @@ export default function ApartmentDetail() {
                 </TabsContent>
 
                 <TabsContent value="comments">
-                  <div className="text-center py-8">
-                    <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                      </svg>
+                  <div className="space-y-4">
+                    {/* Form bình luận */}
+                    <div className="bg-gray-50 rounded-xl p-4 mb-4">
+                      <p className="font-semibold mb-2 text-gray-700">Bình luận về căn hộ</p>
+                      <textarea
+                        className="w-full border rounded-lg px-3 py-2 mb-2 focus:ring-2 focus:ring-blue-400"
+                        rows={2}
+                        placeholder="Nhập bình luận của bạn..."
+                        value={userComment}
+                        onChange={e => setUserComment(e.target.value)}
+                      />
+                      <Button onClick={handleSubmitComment}>Gửi bình luận</Button>
                     </div>
-                    <p className="text-gray-600">Chưa có bình luận nào</p>
-                    <p className="text-sm text-gray-500 mt-1">Hãy là người đầu tiên chia sẻ ý kiến của bạn!</p>
+                    {/* Danh sách bình luận */}
+                    {comments.length === 0 ? (
+                      <div className="text-center text-gray-500">Chưa có bình luận nào</div>
+                    ) : (
+                      comments.map((cmt, idx) => (
+                        <Card key={idx} className="p-4">
+                          <p className="font-semibold text-gray-900 mb-1">Người dùng</p>
+                          <p className="text-gray-700">{cmt}</p>
+                        </Card>
+                      ))
+                    )}
                   </div>
                 </TabsContent>
               </Tabs>
@@ -200,9 +254,6 @@ export default function ApartmentDetail() {
                     <span className="text-base font-normal text-gray-600">/ tháng</span>
                   </div>
                 </div>
-
-                {/* Amenities */}
-                {/* Amenities */}
                 <div>
                   <h3 className="text-lg font-semibold text-gray-900 mb-3">Tiện ích</h3>
                   <p className="text-gray-700 text-sm bg-gray-50 rounded-xl p-4">

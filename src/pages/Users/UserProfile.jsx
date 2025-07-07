@@ -60,11 +60,6 @@ export default function UserProfile() {
           <div className="bg-gradient-to-r from-blue-600 to-purple-600 px-8 py-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4">
-                <div className="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
-                  <svg className="w-10 h-10 text-white" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
-                  </svg>
-                </div>
                 <div className="text-white">
                   <h2 className="text-2xl font-bold">{name}</h2>
                   <p className="text-blue-100 flex items-center">
