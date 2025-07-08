@@ -4,6 +4,7 @@ import SearchAndFilter from "./SearchAndFilter";
 import PostsTable from "./PostsTable";
 import UsersTable from "./UserTable";
 import NavigationTabs from './NavigationTabs';
+import Pagination from '../../components/Pagination';
 const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('posts');
   const [searchTerm, setSearchTerm] = useState('');
@@ -76,42 +77,15 @@ const AdminDashboard = () => {
     }
   ]);
 
-  const [apartments, setApartments] = useState([
-    {
-      id: 1,
-      name: "Vinhomes Central Park",
-      location: "Bình Thạnh, TP.HCM",
-      totalUnits: 3500,
-      availableUnits: 245,
-      status: "active"
-    },
-    {
-      id: 2,
-      name: "Masteri Thảo Điền",
-      location: "Quận 2, TP.HCM",
-      totalUnits: 2800,
-      availableUnits: 189,
-      status: "active"
-    },
-    {
-      id: 3,
-      name: "Landmark 81",
-      location: "Bình Thạnh, TP.HCM",
-      totalUnits: 1000,
-      availableUnits: 67,
-      status: "maintenance"
-    }
-  ]);
-
   // Event handlers
   const handleApprovePost = (postId) => {
-    setPosts(posts.map(post => 
+    setPosts(posts.map(post =>
       post.id === postId ? { ...post, status: 'approved' } : post
     ));
   };
 
   const handleRejectPost = (postId) => {
-    setPosts(posts.map(post => 
+    setPosts(posts.map(post =>
       post.id === postId ? { ...post, status: 'rejected' } : post
     ));
   };
@@ -121,13 +95,13 @@ const AdminDashboard = () => {
   };
 
   const handleBanUser = (userId) => {
-    setUsers(users.map(user => 
+    setUsers(users.map(user =>
       user.id === userId ? { ...user, status: 'banned' } : user
     ));
   };
 
   const handleUnbanUser = (userId) => {
-    setUsers(users.map(user => 
+    setUsers(users.map(user =>
       user.id === userId ? { ...user, status: 'active' } : user
     ));
   };
@@ -135,34 +109,41 @@ const AdminDashboard = () => {
   // Filter functions
   const filterData = (data, type) => {
     return data.filter(item => {
-      const searchFields = type === 'posts' 
+      const searchFields = type === 'posts'
         ? [item.title, item.author]
         : type === 'users'
-        ? [item.name, item.email]
-        : [item.name, item.location];
-      
-      const matchesSearch = searchFields.some(field => 
+          ? [item.name, item.email]
+          : [item.name, item.location];
+
+      const matchesSearch = searchFields.some(field =>
         field.toLowerCase().includes(searchTerm.toLowerCase())
       );
-      
+
       const matchesFilter = statusFilter === 'all' || item.status === statusFilter;
-      
+
       return matchesSearch && matchesFilter;
     });
   };
 
   const filteredPosts = filterData(posts, 'posts');
   const filteredUsers = filterData(users, 'users');
-  const filteredApartments = filterData(apartments, 'apartments');
+  const [currentPage, setCurrentPage] = useState(1);
+  const totalPages = Math.ceil([posts,users].length / 10);
 
+  const handlePageChange = (page) => {
+    if (page >= 1 && page <= totalPages) {
+      setCurrentPage(page);
+      // Gọi API hoặc cập nhật dữ liệu ở đây
+    }
+  }
   return (
     <div className="min-h-screen bg-gray-50">
       <AdminHeader />
-      
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <NavigationTabs activeTab={activeTab} setActiveTab={setActiveTab} />
-        
-        <SearchAndFilter 
+
+        <SearchAndFilter
           searchTerm={searchTerm}
           setSearchTerm={setSearchTerm}
           statusFilter={statusFilter}
@@ -172,7 +153,7 @@ const AdminDashboard = () => {
 
         <div className="bg-white rounded-lg shadow">
           {activeTab === 'posts' && (
-            <PostsTable 
+            <PostsTable
               posts={filteredPosts}
               onApprove={handleApprovePost}
               onReject={handleRejectPost}
@@ -181,12 +162,19 @@ const AdminDashboard = () => {
           )}
 
           {activeTab === 'users' && (
-            <UsersTable 
+            <UsersTable
               users={filteredUsers}
               onBan={handleBanUser}
               onUnban={handleUnbanUser}
             />
           )}
+        </div>
+        <div className="mt-8 flex justify-center">
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={handlePageChange}
+          />
         </div>
       </div>
     </div>
