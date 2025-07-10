@@ -1,11 +1,10 @@
 import { 
   Eye, 
-  Trash2, 
   CheckCircle, 
   XCircle,
 } from 'lucide-react';
 import StatusBadge from './StatusBadge';
-const PostsTable = ({ posts, onApprove, onReject, onDelete }) => {
+const PostsTable = ({ posts, onApprove, onReject }) => {
   return (
     <div className="overflow-x-auto">
       <table className="min-w-full divide-y divide-gray-200">
@@ -38,7 +37,7 @@ const PostsTable = ({ posts, onApprove, onReject, onDelete }) => {
                       {post.title}
                     </div>
                     <div className="text-sm text-gray-500">
-                      {post.type === 'rent' ? 'Cho thuê' : 'Bán'} - {post.price} VND
+                      {post.price} VND
                     </div>
                   </div>
                 </div>
@@ -73,12 +72,6 @@ const PostsTable = ({ posts, onApprove, onReject, onDelete }) => {
                       </button>
                     </>
                   )}
-                  <button
-                    onClick={() => onDelete(post.id)}
-                    className="text-red-600 hover:text-red-900"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
                 </div>
               </td>
             </tr>

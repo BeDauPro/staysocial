@@ -92,7 +92,7 @@ const LandlordDashboard = () => {
       case 'bookings':
         return <BookingHistory bookings={currentData} />;
       case 'revenue':
-        return <RevenueStats />; // Giả định component này không cần phân trang
+        return <RevenueStats />; 
       case 'profile':
         return <ProfileSettings/>;
       case 'logout':

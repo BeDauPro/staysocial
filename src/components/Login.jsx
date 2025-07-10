@@ -33,7 +33,7 @@ const Login = () => {
               <label htmlFor="password" className="block text-sm font-medium text-gray-700">
                 Mật khẩu
               </label>
-              <a href="#" className="text-xs text-indigo-600 hover:underline">
+              <a href="/forgot-password" className="text-xs text-indigo-600 hover:underline">
                 Quên mật khẩu?
               </a>
             </div>

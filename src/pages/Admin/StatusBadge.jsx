@@ -7,7 +7,6 @@ const StatusBadge = ({ status }) => {
       violation: { color: 'bg-red-100 text-red-800', text: 'Vi phạm' },
       active: { color: 'bg-green-100 text-green-800', text: 'Hoạt động' },
       banned: { color: 'bg-red-100 text-red-800', text: 'Bị cấm' },
-      maintenance: { color: 'bg-orange-100 text-orange-800', text: 'Bảo trì' }
     };
     return configs[status] || { color: 'bg-gray-100 text-gray-800', text: status };
   };
