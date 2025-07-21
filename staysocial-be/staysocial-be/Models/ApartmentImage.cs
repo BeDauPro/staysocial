@@ -12,6 +12,5 @@ namespace staysocial_be.Models
 
         public string ImageUrl { get; set; }
     }
-
 }
 

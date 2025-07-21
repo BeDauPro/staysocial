@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using staysocial_be.Data;
 
@@ -10,9 +11,10 @@ using staysocial_be.Data;
 namespace staysocial_be.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250714073356_MakeFullNameNullable")]
+    partial class MakeFullNameNullable
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -524,28 +526,6 @@ namespace staysocial_be.Migrations
                     b.ToTable("Payments");
                 });
 
-            modelBuilder.Entity("staysocial_be.Models.Photo", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    b.Property<string>("PublicId")
-                        .IsRequired()
-                        .HasColumnType("longtext");
-
-                    b.Property<DateTime>("UploadedAt")
-                        .HasColumnType("datetime(6)");
-
-                    b.Property<string>("Url")
-                        .IsRequired()
-                        .HasColumnType("longtext");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("Photos");
-                });
-
             modelBuilder.Entity("staysocial_be.Models.Reaction", b =>
                 {
                     b.Property<int>("ReactionId")
@@ -678,7 +658,7 @@ namespace staysocial_be.Migrations
             modelBuilder.Entity("staysocial_be.Models.ApartmentImage", b =>
                 {
                     b.HasOne("staysocial_be.Models.Apartment", "Apartment")
-                        .WithMany()
+                        .WithMany("Images")
                         .HasForeignKey("ApartmentId1")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -689,7 +669,7 @@ namespace staysocial_be.Migrations
             modelBuilder.Entity("staysocial_be.Models.Booking", b =>
                 {
                     b.HasOne("staysocial_be.Models.Apartment", "Apartment")
-                        .WithMany()
+                        .WithMany("Bookings")
                         .HasForeignKey("ApartmentId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -708,7 +688,7 @@ namespace staysocial_be.Migrations
             modelBuilder.Entity("staysocial_be.Models.Comment", b =>
                 {
                     b.HasOne("staysocial_be.Models.Apartment", "Apartment")
-                        .WithMany()
+                        .WithMany("Comments")
                         .HasForeignKey("ApartmentId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -727,7 +707,7 @@ namespace staysocial_be.Migrations
             modelBuilder.Entity("staysocial_be.Models.Feedback", b =>
                 {
                     b.HasOne("staysocial_be.Models.Apartment", "Apartment")
-                        .WithMany()
+                        .WithMany("Feedbacks")
                         .HasForeignKey("ApartmentId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -765,7 +745,7 @@ namespace staysocial_be.Migrations
             modelBuilder.Entity("staysocial_be.Models.Order", b =>
                 {
                     b.HasOne("staysocial_be.Models.Apartment", "Apartment")
-                        .WithMany()
+                        .WithMany("Orders")
                         .HasForeignKey("ApartmentId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -799,7 +779,7 @@ namespace staysocial_be.Migrations
             modelBuilder.Entity("staysocial_be.Models.Reaction", b =>
                 {
                     b.HasOne("staysocial_be.Models.Apartment", "Apartment")
-                        .WithMany()
+                        .WithMany("Reactions")
                         .HasForeignKey("ApartmentId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -832,6 +812,21 @@ namespace staysocial_be.Migrations
                     b.Navigation("Role");
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("staysocial_be.Models.Apartment", b =>
+                {
+                    b.Navigation("Bookings");
+
+                    b.Navigation("Comments");
+
+                    b.Navigation("Feedbacks");
+
+                    b.Navigation("Images");
+
+                    b.Navigation("Orders");
+
+                    b.Navigation("Reactions");
                 });
 
             modelBuilder.Entity("staysocial_be.Models.AppUser", b =>

@@ -6,7 +6,7 @@ namespace staysocial_be.Models
         public int BookingId { get; set; }
 
         public int UserId { get; set; }
-        public User User { get; set; }
+        public AppUser User { get; set; }
 
         public int ApartmentId { get; set; }
         public Apartment Apartment { get; set; }

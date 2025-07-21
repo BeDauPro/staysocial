@@ -3,6 +3,7 @@ using static System.Collections.Specialized.BitVector32;
 using System.Threading;
 using staysocial_be.Models.Enums;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace staysocial_be.Models
 {
@@ -10,8 +11,9 @@ namespace staysocial_be.Models
     {
         [Key]
         public int ApartmentId { get; set; }
-        public int OwnerId { get; set; }
-        public User Owner { get; set; }
+        public string OwnerId { get; set; }
+        [ForeignKey("OwnerId")]
+        public AppUser Owner { get; set; }
 
         public string Name { get; set; }
         public string Address { get; set; }
@@ -23,12 +25,12 @@ namespace staysocial_be.Models
         public ApartmentStatus Status { get; set; }
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
-        public ICollection<ApartmentImage> Images { get; set; }
-        public ICollection<Reaction> Reactions { get; set; }
-        public ICollection<Comment> Comments { get; set; }
-        public ICollection<Booking> Bookings { get; set; }
-        public ICollection<Order> Orders { get; set; }
-        public ICollection<Feedback> Feedbacks { get; set; }
+        //public ICollection<ApartmentImage> Images { get; set; }
+        //public ICollection<Reaction> Reactions { get; set; }
+        //public ICollection<Comment> Comments { get; set; }
+        //public ICollection<Booking> Bookings { get; set; }
+        //public ICollection<Order> Orders { get; set; }
+        //public ICollection<Feedback> Feedbacks { get; set; }
     }
 
 }

@@ -18,6 +18,9 @@ namespace staysocial_be.Data
         public DbSet<Order> Orders { get; set; }
         public DbSet<Payment> Payments { get; set; }
         public DbSet<Feedback> Feedbacks { get; set; }
+        public DbSet<AppUser> AppUsers { get; set; }
+        public DbSet<LandlordRequest> LandlordRequests { get; set; }
+        public DbSet<Photo> Photos { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -25,6 +28,17 @@ namespace staysocial_be.Data
 
             modelBuilder.Entity<UserRole>()
                 .HasKey(ur => new { ur.UserId, ur.RoleId });
+
+            modelBuilder.Entity<Apartment>()
+                .HasOne(a => a.Owner)
+                .WithMany(u => u.OwnedApartments)
+                .HasForeignKey(a => a.OwnerId)
+                .OnDelete(DeleteBehavior.Restrict);
+            modelBuilder.Entity<Apartment>()
+                .HasOne(a => a.Owner)
+                .WithMany(u => u.OwnedApartments)
+                .HasForeignKey(a => a.OwnerId)
+                .OnDelete(DeleteBehavior.Cascade);
         }
     }
 }

@@ -25,14 +25,16 @@ namespace staysocial_be.Services
         public Task<string> GenerateJwtToken(AppUser user, string role)
         {
             var claims = new List<Claim>
-            {
-                new Claim(JwtRegisteredClaimNames.Sub, user.Email),
-                new Claim(JwtRegisteredClaimNames.Email, user.Email),
-                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-                new Claim(ClaimTypes.Role, role)
-            };
+    {
+        new Claim(ClaimTypes.NameIdentifier, user.Id),                   
+        new Claim(JwtRegisteredClaimNames.Sub, user.Email),
+        new Claim(JwtRegisteredClaimNames.Email, user.Email),
+        new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+        new Claim(ClaimTypes.Role, role)
+    };
 
-            var jwtKey = _config["JWT:Key"];
+            var jwtKey = _config["JWT:Secret"];
+
             if (string.IsNullOrEmpty(jwtKey))
             {
                 _logger.LogError("JWT:Key chưa được cấu hình trong appsettings.json.");

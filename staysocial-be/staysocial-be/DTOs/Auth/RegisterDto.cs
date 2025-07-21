@@ -17,9 +17,6 @@ namespace staysocial_be.DTOs.Auth
         [Required]
         [Compare("Password", ErrorMessage = "Xác nhận mật khẩu không khớp")]
         public string ConfirmPassword { get; set; }
-
-        [Required]
-        public string Role { get; set; } // "User" hoặc "Landlord"
     }
 
 }

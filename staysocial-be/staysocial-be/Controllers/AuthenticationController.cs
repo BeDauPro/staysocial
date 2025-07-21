@@ -37,21 +37,16 @@ namespace staysocial_be.Controllers
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] RegisterDto dto)
         {
-            // 1. Kiểm tra dữ liệu đầu vào
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
             if (dto.Password != dto.ConfirmPassword)
                 return BadRequest(new { error = "Mật khẩu và xác nhận mật khẩu không khớp." });
 
-            if (dto.Role != "User" && dto.Role != "Landlord")
-                return BadRequest(new { error = "Vai trò không hợp lệ. Chỉ chấp nhận 'User' hoặc 'Landlord'." });
-
             var existingUser = await _userManager.FindByEmailAsync(dto.Email);
             if (existingUser != null)
                 return BadRequest(new { error = "Email đã được sử dụng." });
 
-            // 2. Tạo user
             var verificationToken = Guid.NewGuid().ToString();
             var user = new AppUser
             {
@@ -62,18 +57,18 @@ namespace staysocial_be.Controllers
                 SecurityStamp = Guid.NewGuid().ToString()
             };
 
-            // 3. Tạo tài khoản và mật khẩu hash
             var result = await _userManager.CreateAsync(user, dto.Password);
             if (!result.Succeeded)
                 return BadRequest(new { error = "Không thể tạo tài khoản.", details = result.Errors });
 
-            // 4. Tạo và gán vai trò nếu chưa có
-            if (!await _roleManager.RoleExistsAsync(dto.Role))
-                await _roleManager.CreateAsync(new IdentityRole(dto.Role));
+            // Gán mặc định vai trò là "User"
+            const string defaultRole = "Landlord";
+            if (!await _roleManager.RoleExistsAsync(defaultRole))
+                await _roleManager.CreateAsync(new IdentityRole(defaultRole));
 
-            await _userManager.AddToRoleAsync(user, dto.Role);
+            await _userManager.AddToRoleAsync(user, defaultRole);
 
-            // 5. Gửi email xác thực
+            // Gửi email xác thực
             var verifyLink = $"{_configuration["App:VerifyEmailUrl"]}?token={verificationToken}";
             var message = $"<h3>Xác thực tài khoản</h3><p>Nhấn vào liên kết sau để xác thực tài khoản:</p><a href='{verifyLink}'>{verifyLink}</a>";
 
@@ -85,7 +80,6 @@ namespace staysocial_be.Controllers
                 userId = user.Id
             });
         }
-
 
         // Xác thực email
         [HttpGet("verify-email")]
