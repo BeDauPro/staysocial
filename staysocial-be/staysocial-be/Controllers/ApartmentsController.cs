@@ -10,7 +10,6 @@ using staysocial_be.DTOs.Apartment;
 using staysocial_be.Models;
 using staysocial_be.Services.Interfaces;
 
-// For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 
 namespace staysocial_be.Controllers
 {

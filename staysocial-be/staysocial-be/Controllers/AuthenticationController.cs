@@ -62,7 +62,7 @@ namespace staysocial_be.Controllers
                 return BadRequest(new { error = "Không thể tạo tài khoản.", details = result.Errors });
 
             // Gán mặc định vai trò là "User"
-            const string defaultRole = "Landlord";
+            const string defaultRole = "User";
             if (!await _roleManager.RoleExistsAsync(defaultRole))
                 await _roleManager.CreateAsync(new IdentityRole(defaultRole));
 

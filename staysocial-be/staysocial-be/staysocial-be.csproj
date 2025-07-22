@@ -37,6 +37,7 @@
     <None Remove="Attributes\" />
     <None Remove="DTOs\Apartment\" />
     <None Remove="Profiles\" />
+    <None Remove="DTOs\User\" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Models\" />
@@ -51,5 +52,6 @@
     <Folder Include="Attributes\" />
     <Folder Include="DTOs\Apartment\" />
     <Folder Include="Profiles\" />
+    <Folder Include="DTOs\User\" />
   </ItemGroup>
 </Project>
