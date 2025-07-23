@@ -24,6 +24,7 @@ builder.Services.AddTransient<IEmailService, EmailService>();
 builder.Services.AddScoped<IPhotoService, PhotoService>();
 builder.Services.AddScoped<IAppUserService, AppUserService>();
 builder.Services.AddScoped<IBookingService, BookingService>();
+builder.Services.AddScoped<IStatisticsService, StatisticsService>();
 
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseMySql(builder.Configuration.GetConnectionString("DefaultConnection"),
@@ -151,6 +152,47 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IApartmentService, ApartmentService>();
 
 var app = builder.Build();
+using (var scope = app.Services.CreateScope())
+{
+    var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+    var userManager = scope.ServiceProvider.GetRequiredService<UserManager<AppUser>>();
+
+    await SeedRolesAsync(roleManager);
+    await SeedAdminUserAsync(userManager);
+}
+
+async Task SeedAdminUserAsync(UserManager<AppUser> userManager)
+{
+    var adminEmail = "admin@stay.com";
+    var adminPassword = "Admin@123";
+    var existingUser = await userManager.FindByEmailAsync(adminEmail);
+
+    if (existingUser == null)
+    {
+        var admin = new AppUser
+        {
+            UserName = adminEmail,
+            Email = adminEmail,
+            FullName = "Super Admin",
+            EmailConfirmed = true
+        };
+
+        var result = await userManager.CreateAsync(admin, adminPassword);
+        if (result.Succeeded)
+        {
+            await userManager.AddToRoleAsync(admin, "Admin");
+            Console.WriteLine("Admin user created.");
+        }
+        else
+        {
+            Console.WriteLine("Failed to create admin user:");
+            foreach (var error in result.Errors)
+            {
+                Console.WriteLine($" - {error.Description}");
+            }
+        }
+    }
+}
 
 // Auto-migrate DB
 using (var scope = app.Services.CreateScope())

@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using staysocial_be.DTOs.Apartment;
 using staysocial_be.Models;
+using staysocial_be.Services;
 using staysocial_be.Services.Interfaces;
 
 
@@ -26,15 +27,57 @@ namespace staysocial_be.Controllers
             _userManager = userManager;
         }
 
-        [HttpGet]
-        [AllowAnonymous]
-        public async Task<IActionResult> GetAll() => Ok(await _service.GetAllAsync());
+        [HttpGet("approved")]
+        [Authorize]
+        public async Task<IActionResult> GetApprovedApartments()
+        {
+            var apartments = await _service.GetApprovedApartmentsAsync();
+            return Ok(apartments);
+        }
+
+        [HttpGet("admin/all")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> GetAllApartmentsForAdmin()
+        {
+            var apartments = await _service.GetAllForAdminAsync();
+            return Ok(apartments);
+        }
+
+        [HttpPut("approve/{id}")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> ApproveApartment(int id)
+        {
+            var success = await _service.ApproveApartmentAsync(id);
+            if (!success) return NotFound();
+
+            return Ok(new { message = "Căn hộ đã được duyệt." });
+        }
+        [HttpPut("hiden/{id}")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> HideApartment(int id)
+        {
+            var result = await _service.HideApartmentAsync(id);
+
+            if (!result)
+                return NotFound("Căn hộ không tồn tại.");
+
+            return Ok("Căn hộ đã bị ẩn.");
+        }
 
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(int id)
         {
             var result = await _service.GetByIdAsync(id);
             return result == null ? NotFound() : Ok(result);
+        }
+
+        [HttpGet("my-apartments")]
+        [Authorize(Roles = "Landlord")]
+        public async Task<IActionResult> GetMyApartments()
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var apartments = await _service.GetApartmentsByOwnerAsync(userId);
+            return Ok(apartments);
         }
 
         [HttpPost]

@@ -18,7 +18,7 @@ namespace staysocial_be.Controllers
         }
 
         [HttpPost]
-        [Authorize] 
+        [Authorize(Roles = "User, Landlord")] 
         public async Task<IActionResult> UpdateMyProfile([FromBody] UpdateAppUserDto dto)
         {
             try
@@ -63,7 +63,7 @@ namespace staysocial_be.Controllers
 
 
         [HttpGet("my-profile")]
-        [Authorize]
+        [Authorize(Roles = "User, Landlord")]
         public async Task<IActionResult> GetMyProfile()
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);

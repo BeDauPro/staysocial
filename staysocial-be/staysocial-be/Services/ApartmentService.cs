@@ -7,6 +7,8 @@ using staysocial_be.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using AutoMapper;
 using Microsoft.AspNetCore.Identity;
+using staysocial_be.Models.Enums;
+using AutoMapper.QueryableExtensions;
 
 namespace staysocial_be.Services
 {
@@ -23,16 +25,59 @@ namespace staysocial_be.Services
         }
 
 
-        public async Task<IEnumerable<ApartmentDto>> GetAllAsync()
+        public async Task<IEnumerable<ApartmentDto>> GetApprovedApartmentsAsync()
         {
-            var apartments = await _context.Apartments.Include(a => a.Owner).ToListAsync();
-            return _mapper.Map<IEnumerable<ApartmentDto>>(apartments);
+            return await _context.Apartments
+                .Include(a => a.Owner)
+                .Where(a => a.Status == ApartmentStatus.Approved)
+                .Select(a => _mapper.Map<ApartmentDto>(a))
+                .ToListAsync();
+        }
+
+        public async Task<IEnumerable<ApartmentDto>> GetAllForAdminAsync()
+        {
+            return await _context.Apartments
+                .Include(a => a.Owner)
+                .Select(a => _mapper.Map<ApartmentDto>(a))
+                .ToListAsync();
+        }
+
+        public async Task<bool> ApproveApartmentAsync(int id)
+        {
+            var apartment = await _context.Apartments.FindAsync(id);
+            if (apartment == null) return false;
+
+            apartment.Status = ApartmentStatus.Approved;
+            await _context.SaveChangesAsync();
+            return true;
+        }
+        public async Task<bool> HideApartmentAsync(int id)
+        {
+            var apartment = await _context.Apartments.FindAsync(id);
+
+            if (apartment == null)
+                return false;
+
+            apartment.Status = ApartmentStatus.Hidden;
+            _context.Apartments.Update(apartment);
+            await _context.SaveChangesAsync();
+
+            return true;
         }
 
         public async Task<ApartmentDto> GetByIdAsync(int id)
         {
             var apartment = await _context.Apartments.Include(a => a.Owner).FirstOrDefaultAsync(a => a.ApartmentId == id);
             return _mapper.Map<ApartmentDto>(apartment);
+        }
+        public async Task<IEnumerable<ApartmentDto>> GetApartmentsByOwnerAsync(string userId)
+        {
+            var apartments = await _context.Apartments
+                .Where(a => a.OwnerId == userId)
+                .ProjectTo<ApartmentDto>(_mapper.ConfigurationProvider)
+                .ToListAsync();
+
+            return apartments;
         }
 
         public async Task<ApartmentDto> CreateAsync(CreateApartmentDto dto, string userId)
@@ -45,11 +90,14 @@ namespace staysocial_be.Services
             apartment.OwnerId = userId;
             apartment.CreatedAt = DateTime.UtcNow;
 
+            apartment.Status = ApartmentStatus.Pending;
+
             _context.Apartments.Add(apartment);
             await _context.SaveChangesAsync();
 
             return _mapper.Map<ApartmentDto>(apartment);
         }
+
 
         public async Task<bool> UpdateAsync(int id, UpdateApartmentDto dto, string userId, bool isAdmin)
         {
@@ -60,9 +108,18 @@ namespace staysocial_be.Services
                 return false;
 
             _mapper.Map(dto, apartment);
+
+            // Nếu không phải admin, không cho phép thay đổi trạng thái duyệt
+            if (!isAdmin)
+            {
+                // Giữ nguyên trạng thái cũ
+                _context.Entry(apartment).Property(x => x.Status).IsModified = false;
+            }
+
             await _context.SaveChangesAsync();
             return true;
         }
+
 
         public async Task<bool> DeleteAsync(int id, string userId, bool isAdmin)
         {

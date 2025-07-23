@@ -39,6 +39,7 @@
     <None Remove="Profiles\" />
     <None Remove="DTOs\User\" />
     <None Remove="DTOs\Booking\" />
+    <None Remove="DTOs\DashboardStatisticsDto\" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Models\" />
@@ -55,5 +56,6 @@
     <Folder Include="Profiles\" />
     <Folder Include="DTOs\User\" />
     <Folder Include="DTOs\Booking\" />
+    <Folder Include="DTOs\DashboardStatisticsDto\" />
   </ItemGroup>
 </Project>
