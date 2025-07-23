@@ -24,13 +24,6 @@ namespace staysocial_be.Models
         public AvailabilityStatus AvailabilityStatus { get; set; }
         public ApartmentStatus Status { get; set; }
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-
-        //public ICollection<ApartmentImage> Images { get; set; }
-        //public ICollection<Reaction> Reactions { get; set; }
-        //public ICollection<Comment> Comments { get; set; }
-        //public ICollection<Booking> Bookings { get; set; }
-        //public ICollection<Order> Orders { get; set; }
-        //public ICollection<Feedback> Feedbacks { get; set; }
     }
 
 }

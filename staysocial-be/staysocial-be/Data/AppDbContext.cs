@@ -39,6 +39,17 @@ namespace staysocial_be.Data
                 .WithMany(u => u.OwnedApartments)
                 .HasForeignKey(a => a.OwnerId)
                 .OnDelete(DeleteBehavior.Cascade);
+            modelBuilder.Entity<Booking>()
+              .HasOne(b => b.User)
+              .WithMany() 
+              .HasForeignKey(b => b.UserId)
+              .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Booking>()
+                .HasOne(b => b.Apartment)
+                .WithMany() 
+                .HasForeignKey(b => b.ApartmentId)
+                .OnDelete(DeleteBehavior.Restrict);
         }
     }
 }

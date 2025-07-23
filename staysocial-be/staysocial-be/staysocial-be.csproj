@@ -38,6 +38,7 @@
     <None Remove="DTOs\Apartment\" />
     <None Remove="Profiles\" />
     <None Remove="DTOs\User\" />
+    <None Remove="DTOs\Booking\" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Models\" />
@@ -53,5 +54,6 @@
     <Folder Include="DTOs\Apartment\" />
     <Folder Include="Profiles\" />
     <Folder Include="DTOs\User\" />
+    <Folder Include="DTOs\Booking\" />
   </ItemGroup>
 </Project>
