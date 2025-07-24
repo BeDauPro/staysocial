@@ -1,6 +1,25 @@
 import React from 'react'
+import { useDispatch, useSelector } from 'react-redux'
+import { useNavigate } from 'react-router-dom'
+import { logout } from '../redux/slices/authSlice'
+import { logoutUser } from '../services/authApi'
 
 const Navbar = () => {
+    const dispatch = useDispatch()
+    const navigate = useNavigate()
+    const { isAuthenticated } = useSelector(state => state.auth)
+
+    const handleLogout = async () => {
+        try {
+            const res = await logoutUser() // Gọi service logout
+            console.log(res.message)
+
+            dispatch(logout()) // Xoá state Redux
+            navigate('/') // Redirect
+        } catch (error) {
+            console.error('Logout error:', error)
+        }
+    }
     return (
         <header className="bg-white dark:bg-gray-900">
             <div className="mx-auto flex h-16 max-w-screen-xl items-center gap-8 px-4 sm:px-6 lg:px-8">
@@ -47,19 +66,21 @@ const Navbar = () => {
 
                     <div className="flex items-center gap-4">
                         <div className="sm:flex sm:gap-4">
-                            <a
-                                className="block rounded-md bg-teal-600 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-teal-700 dark:hover:bg-teal-500"
-                                href="/login"
-                            >
-                                Login
-                            </a>
-
-                            <a
-                                className="hidden rounded-md bg-gray-100 px-5 py-2.5 text-sm font-medium text-teal-600 transition hover:text-teal-600/75 sm:block dark:bg-gray-800 dark:text-white dark:hover:text-white/75"
-                                href="/logout"
-                            >
-                                Logout
-                            </a>
+                            {!isAuthenticated ? (
+                                <a
+                                    className="block rounded-md bg-teal-600 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-teal-700 dark:hover:bg-teal-500"
+                                    href="/"
+                                >
+                                    Login
+                                </a>
+                            ) : (
+                                <button
+                                    onClick={handleLogout}
+                                    className="rounded-md bg-gray-100 px-5 py-2.5 text-sm font-medium text-teal-600 transition hover:text-teal-600/75 dark:bg-gray-800 dark:text-white dark:hover:text-white/75"
+                                >
+                                    Logout
+                                </button>
+                            )}
                         </div>
 
                         <button

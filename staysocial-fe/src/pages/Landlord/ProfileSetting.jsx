@@ -6,7 +6,7 @@ const ProfileSettings = () => {
   const [profileData, setProfileData] = useState({
     fullName: 'Nguyễn Văn Nam',
     email: 'nguyenvannam@gmail.com',
-    phone: '0123456789',
+    phoneNumber: '0123456789',
     address: '123 Đường Lê Lợi, Quận 1, TP.HCM',
     avatar: null
   });
@@ -112,13 +112,13 @@ const ProfileSettings = () => {
               {isEditing ? (
                 <input
                   type="tel"
-                  value={profileData.phone}
-                  onChange={(e) => handleInputChange('phone', e.target.value)}
+                  value={profileData.phoneNumber}
+                  onChange={(e) => handleInputChange('phoneNumber', e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
                 />
               ) : (
                 <p className="px-3 py-2 bg-gray-50 dark:bg-gray-700 rounded-lg text-gray-900 dark:text-white">
-                  {profileData.phone}
+                  {profileData.phoneNumber}
                 </p>
               )}
             </div>

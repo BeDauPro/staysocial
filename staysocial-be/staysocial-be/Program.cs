@@ -33,11 +33,9 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 builder.Services.Configure<CloudinarySettings>(
     builder.Configuration.GetSection("CloudinarySettings"));
 
-
 builder.Services.AddIdentity<AppUser, IdentityRole>()
     .AddEntityFrameworkStores<AppDbContext>()
     .AddDefaultTokenProviders();
-
 
 builder.Services.Configure<IdentityOptions>(options =>
 {
@@ -47,11 +45,13 @@ builder.Services.Configure<IdentityOptions>(options =>
     options.Password.RequireNonAlphanumeric = false;
     options.Password.RequiredLength = 6;
 });
+
 var jwtKey = builder.Configuration["JWT:Secret"];
 if (string.IsNullOrEmpty(jwtKey) || jwtKey.Length < 16)
 {
     throw new Exception("JWT Secret Key must be at least 16 characters long.");
 }
+
 builder.Services.AddAuthentication(config =>
 {
     config.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -75,7 +75,6 @@ builder.Services.AddAuthentication(config =>
 
         ValidateLifetime = true
     };
-
 
     options.Events = new JwtBearerEvents
     {
@@ -132,26 +131,31 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
+// ✅ CORS Configuration - Đã có sẵn và đúng
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
     {
-        policy.AllowAnyOrigin()
+        policy.WithOrigins("http://localhost:3000")
               .AllowAnyHeader()
-              .AllowAnyMethod();
+              .AllowAnyMethod()
+              .AllowCredentials();
     });
 });
+
 builder.Services.AddAuthorization(options =>
 {
     options.AddPolicy("RequireLandlordOrAdmin", policy =>
         policy.RequireRole("Landlord", "Admin"));
 });
-builder.Services.AddAutoMapper(typeof(Program));
 
+builder.Services.AddAutoMapper(typeof(Program));
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IApartmentService, ApartmentService>();
 
 var app = builder.Build();
+
+// Seed data
 using (var scope = app.Services.CreateScope())
 {
     var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
@@ -194,7 +198,6 @@ async Task SeedAdminUserAsync(UserManager<AppUser> userManager)
     }
 }
 
-// Auto-migrate DB
 using (var scope = app.Services.CreateScope())
 {
     var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
@@ -220,11 +223,12 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-//app.UseHttpsRedirection();
+app.UseCors("AllowFrontend");
 
 app.UseAuthentication();
+
 app.UseAuthorization();
 
 app.MapControllers();
-app.Run();
 
+app.Run();

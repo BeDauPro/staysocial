@@ -104,6 +104,7 @@ namespace staysocial_be.Services
                 Email = user.Email,
                 PhoneNumber = user.PhoneNumber,
                 Address = user.Address,
+                AvatarUrl = user.AvatarUrl,
                 Role = roles.FirstOrDefault() ?? "Unknown"
             };
         }
@@ -122,6 +123,9 @@ namespace staysocial_be.Services
 
             if (!string.IsNullOrEmpty(dto.Address))
                 user.Address = dto.Address;
+            
+            if (!string.IsNullOrEmpty(dto.AvatarUrl))
+                user.AvatarUrl = dto.AvatarUrl;
 
             var result = await _userManager.UpdateAsync(user);
             return result.Succeeded;
