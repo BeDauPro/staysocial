@@ -1,10 +1,11 @@
 import { Routes, Route } from "react-router-dom";
-import { useSelector } from "react-redux";
+import React, { useEffect } from "react";
 import UserLayout from "./components/Users/UserLayout";
 import LandLordLayout from "./components/LandLord/LandLordLayout";
 import AdminLayout from "./components/Admin/AdminLayout";
 import PrivateRoute from "./components/PrivateRoute";
-
+import { useDispatch } from 'react-redux';
+import { syncFromStorage } from './redux/slices/authSlice';
 // Pages
 import Login from "./components/Login";
 import Register from "./components/Register";
@@ -23,6 +24,12 @@ import Logout from "./pages/Landlord/Logout";
 import AdminDashboard from "./pages/Admin/AdminDashboard";
 
 function App() {
+  const dispatch = useDispatch();
+  
+  useEffect(() => {
+    // Sync Redux state từ localStorage khi app load
+    dispatch(syncFromStorage());
+  }, [dispatch]);
   return (
     <Routes>
       {/* Public Routes */}

@@ -20,7 +20,7 @@ namespace staysocial_be.Models
         public decimal Price { get; set; }
         public float Area { get; set; }
         public string Amenities { get; set; }
-
+        public bool IsDeleted { get; set; } = false;
         public AvailabilityStatus AvailabilityStatus { get; set; }
         public ApartmentStatus Status { get; set; }
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

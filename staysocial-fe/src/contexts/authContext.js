@@ -41,7 +41,7 @@ export const AuthProvider = ({ children }) => {
         isLogin,
         token,
         employer,
-        userInfo,        // thêm info từ token
+        userInfo,        
         setToken,
         setEmployer,
         logout,

@@ -5,16 +5,18 @@ import {
   Upload,
   Camera,
 } from 'lucide-react';
-
+import { createApartment } from '../../services/apartmentApi';
+import { uploadPhoto } from '../../services/photoApi';
 const AddApartmentModal = ({ isOpen, onClose, onSubmit }) => {
   const [formData, setFormData] = useState({
     name: '',
     address: '',
     price: '',
-    description: ''
+    amenities: ''
   });
   const [newImages, setNewImages] = useState([]);
   const [previewUrls, setPreviewUrls] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleInputChange = (field, value) => {
     setFormData(prev => ({
@@ -27,9 +29,9 @@ const AddApartmentModal = ({ isOpen, onClose, onSubmit }) => {
     const files = Array.from(e.target.files);
     const remainingSlots = 5 - previewUrls.length;
     const filesToAdd = files.slice(0, remainingSlots);
-    
+
     const newPreviewUrls = filesToAdd.map(file => URL.createObjectURL(file));
-    
+
     setNewImages(prev => [...prev, ...filesToAdd]);
     setPreviewUrls(prev => [...prev, ...newPreviewUrls]);
   };
@@ -37,31 +39,52 @@ const AddApartmentModal = ({ isOpen, onClose, onSubmit }) => {
   const removeImage = (index) => {
     const newImagesCopy = [...newImages];
     const newPreviewUrlsCopy = [...previewUrls];
-    
-    // Revoke object URL to prevent memory leaks
+
     URL.revokeObjectURL(newPreviewUrlsCopy[index]);
-    
+
     newImagesCopy.splice(index, 1);
     newPreviewUrlsCopy.splice(index, 1);
-    
+
     setNewImages(newImagesCopy);
     setPreviewUrls(newPreviewUrlsCopy);
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!formData.name || !formData.address || !formData.price) {
       alert('Vui lòng điền đầy đủ thông tin căn hộ!');
       return;
     }
 
-    const apartmentData = {
-      ...formData,
-      images: previewUrls,
-      status: 'Trống'
-    };
+    try {
+      setIsLoading(true);
 
-    onSubmit(apartmentData);
-    resetForm();
+      // Upload ảnh lên server
+      const uploadedPhotos = [];
+      for (let file of newImages) {
+        const uploaded = await uploadPhoto(file);
+        uploadedPhotos.push(uploaded.url);
+      }
+
+      // Chuẩn bị dữ liệu căn hộ
+      const apartmentData = {
+        ...formData,
+        imageUrls: uploadedPhotos,
+        availabilityStatus: 0, 
+        status: 1              
+      };
+
+      // Gọi API tạo căn hộ
+      const created = await createApartment(apartmentData);
+
+      alert("Tạo căn hộ thành công!");
+      onSubmit(created); // Gửi dữ liệu về component cha nếu cần
+      resetForm();
+    } catch (err) {
+      console.error("Lỗi khi tạo căn hộ:", err);
+      alert("Không thể tạo căn hộ!");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const resetForm = () => {
@@ -69,7 +92,7 @@ const AddApartmentModal = ({ isOpen, onClose, onSubmit }) => {
       name: '',
       address: '',
       price: '',
-      description: ''
+      amenities: ''
     });
     setNewImages([]);
     // Clean up preview URLs
@@ -148,8 +171,8 @@ const AddApartmentModal = ({ isOpen, onClose, onSubmit }) => {
               placeholder="Nhập mô tả chi tiết về căn hộ..."
               rows={4}
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white resize-none"
-              value={formData.description}
-              onChange={e => handleInputChange('description', e.target.value)}
+              value={formData.amenities}
+              onChange={e => handleInputChange('amenities', e.target.value)}
             />
           </div>
 
@@ -158,7 +181,7 @@ const AddApartmentModal = ({ isOpen, onClose, onSubmit }) => {
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Hình ảnh căn hộ (tối đa 5 ảnh)
             </label>
-            
+
             {/* Upload Area */}
             <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6 text-center hover:border-blue-500 dark:hover:border-blue-400 transition-colors">
               <input
@@ -177,8 +200,8 @@ const AddApartmentModal = ({ isOpen, onClose, onSubmit }) => {
                 <div className="flex flex-col items-center">
                   <Upload className="w-8 h-8 text-gray-400 mb-2" />
                   <span className="text-sm text-gray-600 dark:text-gray-400">
-                    {previewUrls.length >= 5 
-                      ? 'Đã đạt giới hạn tối đa 5 ảnh' 
+                    {previewUrls.length >= 5
+                      ? 'Đã đạt giới hạn tối đa 5 ảnh'
                       : 'Nhấp để tải ảnh lên hoặc kéo thả vào đây'
                     }
                   </span>
@@ -225,14 +248,16 @@ const AddApartmentModal = ({ isOpen, onClose, onSubmit }) => {
           <button
             onClick={resetForm}
             className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+            disabled={isLoading}
           >
             Hủy
           </button>
           <button
             onClick={handleSubmit}
+            disabled={isLoading}
             className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors shadow-md hover:shadow-lg"
           >
-            Thêm căn hộ
+            {isLoading ? "Đang xử lý..." : "Thêm căn hộ"}
           </button>
         </div>
       </div>

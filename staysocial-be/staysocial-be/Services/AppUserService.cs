@@ -124,8 +124,8 @@ namespace staysocial_be.Services
             if (!string.IsNullOrEmpty(dto.Address))
                 user.Address = dto.Address;
             
-            if (!string.IsNullOrEmpty(dto.AvatarUrl))
-                user.AvatarUrl = dto.AvatarUrl;
+            if (!string.IsNullOrEmpty(dto.Email))
+                user.Email = dto.Email;
 
             var result = await _userManager.UpdateAsync(user);
             return result.Succeeded;

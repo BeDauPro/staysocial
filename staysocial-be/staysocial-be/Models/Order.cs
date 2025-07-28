@@ -21,6 +21,5 @@ namespace staysocial_be.Models
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     }
-
 }
 

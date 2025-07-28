@@ -4,7 +4,6 @@ import { useNavigate } from "react-router-dom";
 import { useDispatch } from 'react-redux';
 import { login } from '../redux/slices/authSlice'; // đúng path bạn lưu file slice
 
-
 const Login = () => {
 
   const [form, setForm] = useState({
@@ -21,51 +20,64 @@ const Login = () => {
     setError("");
   };
   const handleSubmit = async (e) => {
-    e.preventDefault();
-
-    if (!form.email || !form.password) {
-      setError("Vui lòng điền đầy đủ thông tin.");
-      return;
+  e.preventDefault();
+  
+  if (!form.email || !form.password) {
+    setError("Vui lòng điền đầy đủ thông tin.");
+    return;
+  }
+  
+  setLoading(true);
+  setError("");
+  
+  try {
+    const loginData = {
+      email: form.email.trim(),
+      password: form.password,
+    };
+    
+    console.log('Sending login data:', loginData);
+    const res = await loginUser(loginData);
+    console.log('Login API response:', res);
+    
+    // 1. Lưu localStorage TRƯỚC
+    localStorage.setItem("token", res.token);
+    localStorage.setItem("user", JSON.stringify(res));
+    
+    // 2. Verify localStorage đã lưu thành công
+    console.log('Verification after localStorage save:');
+    console.log('Token:', localStorage.getItem("token"));
+    console.log('User:', localStorage.getItem("user"));
+    
+    // 3. Dispatch Redux với đầy đủ thông tin
+    dispatch(login({
+      token: res.token,        // Thêm token vào Redux
+      user: res,               // Lưu toàn bộ response object thay vì chỉ email
+      role: res.role,
+    }));
+    
+    console.log('Redux dispatch completed');
+    
+    // 4. Đợi một chút để đảm bảo state được cập nhật
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
+    // 5. Navigate theo role
+    console.log('Navigating based on role:', res.role);
+    if (res.role === 'Admin') {
+      navigate('/admindashboard');
+    } else if (res.role === 'Landlord') {
+      navigate('/landlorddashboard');
+    } else {
+      navigate('/productslist');
     }
-
-    setLoading(true);
-    setError("");
-
-    try {
-      const loginData = {
-        email: form.email.trim(),
-        password: form.password,
-      };
-
-      const res = await loginUser(loginData);
-
-      // 1. Lưu localStorage
-      localStorage.setItem("token", res.token);
-      localStorage.setItem("user", JSON.stringify(res));
-
-      // 2. Cập nhật Redux store
-      dispatch(login({
-        user: res.user || res.email, // hoặc object user tuỳ backend trả về
-        role: res.role,
-      }));
-
-      // 3. Navigate theo role
-      if (res.role === 'Admin') {
-        navigate('/admindashboard');
-      } else if (res.role === 'Landlord') {
-        navigate('/landlorddashboard'); // bạn đang viết nhầm: /landlord/dashboard
-      } else {
-        navigate('/productslist');
-      }
-
-
-    } catch (err) {
-      console.error('Login failed:', err);
-      setError(err.message || "Đăng nhập thất bại.");
-    } finally {
-      setLoading(false);
-    }
-  };
+    
+  } catch (err) {
+    console.error('Login failed:', err);
+    setError(err.message || "Đăng nhập thất bại.");
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 px-4">

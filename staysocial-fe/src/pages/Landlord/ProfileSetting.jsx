@@ -1,15 +1,35 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Save, Edit2 } from 'lucide-react';
+import { getMyProfile, updateMyProfile } from '../../services/appuserApi'; 
 
 const ProfileSettings = () => {
   const [isEditing, setIsEditing] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [profileData, setProfileData] = useState({
-    fullName: 'Nguyễn Văn Nam',
-    email: 'nguyenvannam@gmail.com',
-    phoneNumber: '0123456789',
-    address: '123 Đường Lê Lợi, Quận 1, TP.HCM',
-    avatar: null
+    fullName: '',
+    email: '',
+    phoneNumber: '',
+    address: '',
+    avatarUrl: null
   });
+
+  const [originalData, setOriginalData] = useState(null);
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const data = await getMyProfile();
+        setProfileData(data);
+        setOriginalData(data);
+      } catch (error) {
+        console.error('Không có thông tin profile. Người dùng cần chỉnh sửa để tạo mới.');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchProfile();
+  }, []);
 
   const handleInputChange = (field, value) => {
     setProfileData(prev => ({
@@ -18,16 +38,34 @@ const ProfileSettings = () => {
     }));
   };
 
-  const handleSave = () => {
-    // Xử lý lưu thông tin profile
-    console.log('Saving profile:', profileData);
+const handleSave = async () => {
+  try {
+    const res = await updateMyProfile(profileData);
+    const updatedUser = res.user; 
+    setProfileData(updatedUser);
+    setOriginalData(updatedUser);
+    setIsEditing(false);
+  } catch (error) {
+    console.error('Lỗi khi cập nhật hồ sơ:', error);
+    alert('Cập nhật không thành công!');
+  }
+};
+
+
+  const handleCancel = () => {
+    setProfileData(originalData || {
+      fullName: '',
+      email: '',
+      phoneNumber: '',
+      address: '',
+      avatarUrl: null
+    });
     setIsEditing(false);
   };
 
-  const handleCancel = () => {
-    setIsEditing(false);
-    // Reset lại dữ liệu nếu cần
-  };
+  if (isLoading) {
+    return <div className="text-center py-10">Đang tải thông tin...</div>;
+  }
 
   return (
     <div className="max-w-4xl mx-auto">
@@ -48,7 +86,7 @@ const ProfileSettings = () => {
             <div className="flex items-center space-x-4">
               <div>
                 <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
-                  {profileData.fullName}
+                  {profileData.fullName || 'Chưa có tên'}
                 </h3>
                 <p className="text-gray-600 dark:text-gray-400">Chủ nhà</p>
               </div>
@@ -75,6 +113,7 @@ const ProfileSettings = () => {
                 <input
                   type="text"
                   value={profileData.fullName}
+                  placeholder='Nhập họ và tên'
                   onChange={(e) => handleInputChange('fullName', e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
                 />
@@ -94,6 +133,7 @@ const ProfileSettings = () => {
                 <input
                   type="email"
                   value={profileData.email}
+                   placeholder='Nhập email'
                   onChange={(e) => handleInputChange('email', e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
                 />
@@ -113,6 +153,7 @@ const ProfileSettings = () => {
                 <input
                   type="tel"
                   value={profileData.phoneNumber}
+                  placeholder='Nhập số điện thoại'
                   onChange={(e) => handleInputChange('phoneNumber', e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
                 />
@@ -132,6 +173,7 @@ const ProfileSettings = () => {
                 <input
                   type="text"
                   value={profileData.address}
+                  placeholder='Nhập địa chỉ'
                   onChange={(e) => handleInputChange('address', e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
                 />
