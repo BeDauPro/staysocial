@@ -65,7 +65,6 @@ namespace staysocial_be.Services
             return true;
         }
 
-        // Trong ApartmentService.cs, sửa method GetByIdAsync:
         public async Task<ApartmentDto> GetByIdAsync(int id)
         {
             var apartment = await _context.Apartments

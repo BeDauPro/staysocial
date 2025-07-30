@@ -51,8 +51,8 @@ const Login = () => {
     
     // 3. Dispatch Redux với đầy đủ thông tin
     dispatch(login({
-      token: res.token,        // Thêm token vào Redux
-      user: res,               // Lưu toàn bộ response object thay vì chỉ email
+      token: res.token,        
+      user: res,               
       role: res.role,
     }));
     
@@ -68,7 +68,7 @@ const Login = () => {
     } else if (res.role === 'Landlord') {
       navigate('/landlorddashboard');
     } else {
-      navigate('/productslist');
+      navigate('/apartments');
     }
     
   } catch (err) {

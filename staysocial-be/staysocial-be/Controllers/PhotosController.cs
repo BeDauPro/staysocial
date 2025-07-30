@@ -53,7 +53,7 @@ namespace staysocial_be.Controllers
             });
         }
 
-        // ✅ Thêm endpoint lấy photos theo apartment
+       
         [HttpGet("apartment/{apartmentId}")]
         public async Task<IActionResult> GetPhotosByApartment(int apartmentId)
         {

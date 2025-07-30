@@ -2,6 +2,7 @@ import { getApartmentById } from '../../services/apartmentApi';
 import { getAllPhotos, getPhotoById } from '../../services/photoApi'; 
 import React, { useState, useEffect } from "react";
 import { Star, Heart, ThumbsUp, ThumbsDown, MapPin, Wifi, Car, Shield, Waves, Dumbbell, Camera } from "lucide-react";
+import { useSelector } from 'react-redux';
 
 // Define BASE_URL for photo URLs
 const BASE_URL = 'http://localhost:5283/api';
@@ -89,7 +90,8 @@ export default function ApartmentDetail({ apartmentId = 1 }) {
   const [photos, setPhotos] = useState([]); // State riêng cho photos
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  
+  const role = useSelector((state) => state.auth.role);
+
   // State cho UI interactions
   const [liked, setLiked] = useState(false);
   const [thumbsUp, setThumbsUp] = useState(false);
@@ -222,15 +224,9 @@ export default function ApartmentDetail({ apartmentId = 1 }) {
     }
     
     try {
-      // TODO: Implement review API call
-      // await submitReview(apartmentId, { rating: userRating, comment: userReview });
-      
       alert(`Bạn đã đánh giá ${userRating} sao: ${userReview}`);
       setUserRating(0);
       setUserReview('');
-      
-      // Có thể refresh data để lấy reviews mới
-      // fetchApartmentData();
     } catch (err) {
       alert('Có lỗi khi gửi đánh giá: ' + err.message);
     }
@@ -243,9 +239,6 @@ export default function ApartmentDetail({ apartmentId = 1 }) {
     }
     
     try {
-      // TODO: Implement comment API call
-      // await submitComment(apartmentId, userComment);
-      
       setComments(prev => [...prev, {
         id: Date.now(),
         content: userComment,
@@ -258,7 +251,6 @@ export default function ApartmentDetail({ apartmentId = 1 }) {
     }
   };
 
-  // Loading state
   if (loading) {
     return (
       <div className="bg-gradient-to-br from-blue-50 via-white to-purple-50 p-4">
@@ -292,7 +284,6 @@ export default function ApartmentDetail({ apartmentId = 1 }) {
     );
   }
 
-  // No data state
   if (!apartment) {
     return (
       <div className="bg-gradient-to-br from-blue-50 via-white to-purple-50 p-4">
@@ -309,10 +300,9 @@ export default function ApartmentDetail({ apartmentId = 1 }) {
     );
   }
 
-  // Sử dụng photos từ state thay vì apartment data
+
   const images = photos.length > 0 ? photos : getDefaultImages();
 
-  // Debug: Log images để kiểm tra
   console.log('Current images for display:', images);
   console.log('Photos state:', photos);
   console.log('Selected image index:', selectedImage);
@@ -499,35 +489,19 @@ export default function ApartmentDetail({ apartmentId = 1 }) {
                     {apartment.price ? `${apartment.price.toLocaleString('vi-VN')}₫` : 'Liên hệ'}
                     <span className="text-base font-normal text-gray-600">/ tháng</span>
                   </div>
-                  
-                  {/* Thông tin thêm từ API */}
-                  {apartment.area && (
-                    <div className="text-sm text-gray-600 mb-2">
-                      <span className="font-medium">Diện tích:</span> {apartment.area}m²
-                    </div>
-                  )}
-                  {apartment.bedrooms && (
-                    <div className="text-sm text-gray-600 mb-2">
-                      <span className="font-medium">Phòng ngủ:</span> {apartment.bedrooms}
-                    </div>
-                  )}
-                  {apartment.bathrooms && (
-                    <div className="text-sm text-gray-600 mb-2">
-                      <span className="font-medium">Phòng tắm:</span> {apartment.bathrooms}
-                    </div>
-                  )}
+                
                 </div>
                 
                 <div>
                   <h3 className="text-lg font-semibold text-gray-900 mb-3">
-                    {apartment.description ? 'Mô tả' : 'Tiện ích'}
+                    {apartment.amenities ? 'Mô tả' : 'Tiện ích'}
                   </h3>
                   <p className="text-gray-700 text-sm bg-gray-50 rounded-xl p-4">
-                    {apartment.description || apartment.amenities || 
-                     'Căn hộ được trang bị đầy đủ tiện ích: hồ bơi, phòng gym, bảo vệ 24/7, bãi đỗ xe rộng rãi, wifi miễn phí và nhiều tiện ích khác đáp ứng nhu cầu sinh hoạt hiện đại.'}
+                    {apartment.amenities}
                   </p>
                 </div>
-
+                {role === 'User' && (
+                  <>
                 {/* Reactions */}
                 <div>
                   <h3 className="text-lg font-semibold text-gray-900 mb-3">Phản hồi</h3>
@@ -600,6 +574,8 @@ export default function ApartmentDetail({ apartmentId = 1 }) {
                     </div>
                   </div>
                 </div>
+                </>
+                )}
               </div>
             </div>
           </div>

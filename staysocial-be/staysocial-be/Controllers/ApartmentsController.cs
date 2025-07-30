@@ -81,7 +81,51 @@ namespace staysocial_be.Controllers
                 return StatusCode(500, "An error occurred while retrieving the apartment");
             }
         }
+        [HttpGet("apartmentdetail/{id}")]
+        [Authorize(Roles = "Landlord, User")]
 
+        public async Task<IActionResult> GetApartmentDetail(int id)
+        {
+            try
+            {
+                // Lấy thông tin căn hộ bao gồm photos
+                var apartment = await _context.Apartments
+                    .Include(a => a.Owner)
+                    .Include(a => a.Photos)
+                    .FirstOrDefaultAsync(a => a.ApartmentId == id);
+
+                if (apartment == null)
+                    return NotFound("Căn hộ không tồn tại.");
+
+                // Map sang DTO
+                var apartmentDto = new ApartmentDto
+                {
+                    ApartmentId = apartment.ApartmentId,
+                    Name = apartment.Name,
+                    Address = apartment.Address,
+                    Price = apartment.Price,
+                    Amenities = apartment.Amenities,
+                    OwnerId = apartment.OwnerId,
+                    OwnerEmail = apartment.Owner?.Email,
+                    AvailabilityStatus = apartment.AvailabilityStatus,
+                    Status = apartment.Status,
+                    CreatedAt = apartment.CreatedAt,
+                    Photos = apartment.Photos.Select(p => new PhotoDto
+                    {
+                        Id = p.Id,
+                        Url = p.Url,
+                        UploadedAt = p.UploadedAt,
+                        ApartmentId = p.ApartmentId
+                    }).ToList()
+                };
+
+                return Ok(apartmentDto);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, "Đã xảy ra lỗi khi lấy thông tin chi tiết căn hộ.");
+            }
+        }
         [HttpGet("my-apartments")]
         [Authorize(Roles = "Landlord")]
         public async Task<IActionResult> GetMyApartments()
