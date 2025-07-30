@@ -67,6 +67,14 @@ export const getApprovedApartments = async () => {
     throw handleError(err);
   }
 };
+export const getApartmentPhotos = async (apartmentId) => {
+  try {
+    const res = await axiosInstance.get(`/photos/apartment/${apartmentId}`);
+    return res.data;
+  } catch (err) {
+    throw handleError(err);
+  }
+};
 
 // 2. Lấy tất cả căn hộ cho Admin
 export const getAllApartmentsForAdmin = async () => {

@@ -1,7 +1,6 @@
 import axios from 'axios';
 
-// BASE_URL có thể là localhost hoặc từ biến môi trường
-const BASE_URL = 'http://localhost:5283/api'; // Thay đổi nếu cần
+const BASE_URL = 'http://localhost:5283/api'; 
 
 const axiosInstance = axios.create({
   baseURL: BASE_URL,
@@ -48,6 +47,21 @@ export const getPhotoById = async (id) => {
 export const uploadPhoto = async (file) => {
   const formData = new FormData();
   formData.append("file", file);
+
+  const res = await axiosInstance.post('/photos', formData, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+  });
+
+  return res.data;
+};
+export const uploadPhotoForApartment = async (file, apartmentId) => {
+  const formData = new FormData();
+  formData.append("file", file);
+  if (apartmentId) {
+    formData.append("apartmentId", apartmentId);
+  }
 
   const res = await axiosInstance.post('/photos', formData, {
     headers: {

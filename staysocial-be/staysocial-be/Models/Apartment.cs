@@ -24,6 +24,7 @@ namespace staysocial_be.Models
         public AvailabilityStatus AvailabilityStatus { get; set; }
         public ApartmentStatus Status { get; set; }
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public virtual ICollection<Photo> Photos { get; set; } = new List<Photo>();
     }
 
 }

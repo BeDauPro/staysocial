@@ -1,5 +1,10 @@
-import React, { useState } from "react";
+import { getApartmentById } from '../../services/apartmentApi';
+import { getAllPhotos, getPhotoById } from '../../services/photoApi'; 
+import React, { useState, useEffect } from "react";
 import { Star, Heart, ThumbsUp, ThumbsDown, MapPin, Wifi, Car, Shield, Waves, Dumbbell, Camera } from "lucide-react";
+
+// Define BASE_URL for photo URLs
+const BASE_URL = 'http://localhost:5283/api';
 
 const Tabs = ({ defaultValue, children }) => {
   const [activeTab, setActiveTab] = useState(defaultValue);
@@ -60,10 +65,10 @@ const CardContent = ({ children, className = "" }) => (
   </div>
 );
 
-const Button = ({ variant = "default", children, onClick, className = "" }) => {
-  const baseClasses = "inline-flex items-center justify-center rounded-lg font-medium transition-all duration-200 hover:scale-105";
+const Button = ({ variant = "default", children, onClick, className = "", disabled = false }) => {
+  const baseClasses = "inline-flex items-center justify-center rounded-lg font-medium transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed";
   const variants = {
-    default: "bg-blue-600 text-white px-4 py-2 hover:bg-blue-700",
+    default: "bg-blue-600 text-white px-4 py-2 hover:bg-blue-700 disabled:hover:bg-blue-600",
     ghost: "bg-transparent hover:bg-gray-100 px-3 py-2"
   };
 
@@ -71,42 +76,246 @@ const Button = ({ variant = "default", children, onClick, className = "" }) => {
     <button
       className={`${baseClasses} ${variants[variant]} ${className}`}
       onClick={onClick}
+      disabled={disabled}
     >
       {children}
     </button>
   );
 };
 
-export default function ApartmentDetail() {
+export default function ApartmentDetail({ apartmentId = 1 }) {
+  // State cho apartment data
+  const [apartment, setApartment] = useState(null);
+  const [photos, setPhotos] = useState([]); // State riêng cho photos
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  
+  // State cho UI interactions
   const [liked, setLiked] = useState(false);
   const [thumbsUp, setThumbsUp] = useState(false);
   const [selectedImage, setSelectedImage] = useState(0);
-  // ...existing code...
   const [userRating, setUserRating] = useState(0);
   const [userReview, setUserReview] = useState('');
   const [userComment, setUserComment] = useState('');
   const [comments, setComments] = useState([]);
 
-  const handleSubmitReview = () => {
-    // Xử lý gửi đánh giá (gọi API hoặc cập nhật state)
-    alert(`Bạn đã đánh giá ${userRating} sao: ${userReview}`);
-    setUserRating(0);
-    setUserReview('');
-  };
+  // Fetch apartment data khi component mount
+  useEffect(() => {
+    fetchApartmentData();
+  }, [apartmentId]);
 
-  const handleSubmitComment = () => {
-    if (userComment.trim() !== '') {
-      setComments(prev => [...prev, userComment]);
-      setUserComment('');
+  const fetchApartmentData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      // Fetch apartment data
+      const apartmentData = await getApartmentById(apartmentId);
+      setApartment(apartmentData);
+      console.log('Apartment data:', apartmentData);
+      
+      // Fetch photos - có thể từ apartment hoặc từ photo API riêng
+      await fetchPhotos(apartmentData);
+      
+    } catch (err) {
+      setError(err.message || 'Không thể tải thông tin căn hộ');
+      console.error('Error fetching apartment:', err);
+    } finally {
+      setLoading(false);
     }
   };
-  const images = [
+
+  const fetchPhotos = async (apartmentData) => {
+    try {
+      let photoList = [];
+
+      console.log('Fetching photos for apartment:', apartmentData);
+
+      // Cách 1: Nếu apartment có photoIds array
+      if (apartmentData.photoIds && apartmentData.photoIds.length > 0) {
+        console.log('Method 1: Using photoIds:', apartmentData.photoIds);
+        const photoPromises = apartmentData.photoIds.map(photoId => 
+          getPhotoById(photoId).catch(err => {
+            console.warn(`Failed to fetch photo ${photoId}:`, err);
+            return null;
+          })
+        );
+        const fetchedPhotos = await Promise.all(photoPromises);
+        photoList = fetchedPhotos.filter(photo => photo !== null);
+      }
+      
+      // Cách 2: Nếu apartment có photos array trực tiếp
+      else if (apartmentData.photos && apartmentData.photos.length > 0) {
+        console.log('Method 2: Using direct photos:', apartmentData.photos);
+        photoList = apartmentData.photos;
+      }
+      
+      // Cách 3: Lấy tất cả photos (để test)
+      else {
+        console.log('Method 3: Fetching all photos');
+        try {
+          const allPhotos = await getAllPhotos();
+          console.log('All photos received:', allPhotos);
+          
+          // Nếu không có apartmentId field, lấy tất cả photos để test
+          photoList = allPhotos || [];
+          
+          // Uncomment dòng này nếu photos có apartmentId field
+          // photoList = allPhotos.filter(photo => 
+          //   photo.apartmentId === apartmentId || 
+          //   photo.relatedId === apartmentId
+          // );
+        } catch (err) {
+          console.warn('Failed to fetch all photos:', err);
+          photoList = [];
+        }
+      }
+
+      console.log('Photo list before processing:', photoList);
+
+      // Process photos để lấy URL
+      const processedPhotos = photoList.map(photo => {
+        if (typeof photo === 'string') {
+          return photo; // Nếu là string URL trực tiếp
+        }
+        
+        // Với cấu trúc { id, url, uploadedAt }
+        if (photo && photo.url) {
+          return photo.url;
+        }
+        
+        // Fallback cho các field khác
+        return photo.filePath || 
+               photo.imageUrl || 
+               photo.src ||
+               `${BASE_URL}/photos/${photo.id}` ||
+               null;
+      }).filter(url => url !== null); // Loại bỏ null values
+
+      console.log('Processed photos:', processedPhotos);
+
+      if (processedPhotos.length > 0) {
+        setPhotos(processedPhotos);
+      } else {
+        console.log('No photos found, using defaults');
+        setPhotos(getDefaultImages());
+      }
+      
+    } catch (err) {
+      console.error('Error fetching photos:', err);
+      setPhotos(getDefaultImages());
+    }
+  };
+
+  const getDefaultImages = () => [
     "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800&h=600&fit=crop",
     "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=200&h=200&fit=crop",
     "https://images.unsplash.com/photo-1502672023488-70e25813eb80?w=200&h=200&fit=crop",
     "https://images.unsplash.com/photo-1484154218962-a197022b5858?w=200&h=200&fit=crop",
     "https://images.unsplash.com/photo-1493663284031-b7e3aaa4b7bb?w=200&h=200&fit=crop"
   ];
+
+  const handleSubmitReview = async () => {
+    if (userRating === 0) {
+      alert('Vui lòng chọn số sao đánh giá');
+      return;
+    }
+    
+    try {
+      // TODO: Implement review API call
+      // await submitReview(apartmentId, { rating: userRating, comment: userReview });
+      
+      alert(`Bạn đã đánh giá ${userRating} sao: ${userReview}`);
+      setUserRating(0);
+      setUserReview('');
+      
+      // Có thể refresh data để lấy reviews mới
+      // fetchApartmentData();
+    } catch (err) {
+      alert('Có lỗi khi gửi đánh giá: ' + err.message);
+    }
+  };
+
+  const handleSubmitComment = async () => {
+    if (userComment.trim() === '') {
+      alert('Vui lòng nhập bình luận');
+      return;
+    }
+    
+    try {
+      // TODO: Implement comment API call
+      // await submitComment(apartmentId, userComment);
+      
+      setComments(prev => [...prev, {
+        id: Date.now(),
+        content: userComment,
+        author: 'Bạn',
+        createdAt: new Date().toLocaleString()
+      }]);
+      setUserComment('');
+    } catch (err) {
+      alert('Có lỗi khi gửi bình luận: ' + err.message);
+    }
+  };
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="bg-gradient-to-br from-blue-50 via-white to-purple-50 p-4">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex items-center justify-center h-96">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+              <p className="text-gray-600">Đang tải thông tin căn hộ...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="bg-gradient-to-br from-blue-50 via-white to-purple-50 p-4">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex items-center justify-center h-96">
+            <div className="text-center">
+              <div className="text-red-500 text-6xl mb-4">⚠️</div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">Không thể tải dữ liệu</h2>
+              <p className="text-gray-600 mb-4">{error}</p>
+              <Button onClick={fetchApartmentData}>Thử lại</Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // No data state
+  if (!apartment) {
+    return (
+      <div className="bg-gradient-to-br from-blue-50 via-white to-purple-50 p-4">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex items-center justify-center h-96">
+            <div className="text-center">
+              <div className="text-gray-400 text-6xl mb-4">🏠</div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">Không tìm thấy căn hộ</h2>
+              <p className="text-gray-600">Căn hộ này có thể đã bị xóa hoặc không tồn tại.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Sử dụng photos từ state thay vì apartment data
+  const images = photos.length > 0 ? photos : getDefaultImages();
+
+  // Debug: Log images để kiểm tra
+  console.log('Current images for display:', images);
+  console.log('Photos state:', photos);
+  console.log('Selected image index:', selectedImage);
 
   return (
     <div className="bg-gradient-to-br from-blue-50 via-white to-purple-50 p-4">
@@ -118,8 +327,12 @@ export default function ApartmentDetail() {
               <div className="relative group">
                 <img
                   src={images[selectedImage]}
-                  alt="Apartment main view"
+                  alt={`${apartment.title || 'Apartment'} main view`}
                   className="w-full h-96 object-cover"
+                  onError={(e) => {
+                    console.warn('Image failed to load:', e.target.src);
+                    e.target.src = getDefaultImages()[0];
+                  }}
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                 <button className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm rounded-full p-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
@@ -139,7 +352,11 @@ export default function ApartmentDetail() {
                       <img
                         src={img}
                         className="w-full h-20 object-cover"
-                        alt={`Apartment view ${i + 1}`}
+                        alt={`${apartment.title || 'Apartment'} view ${i + 1}`}
+                        onError={(e) => {
+                          console.warn('Thumbnail failed to load:', e.target.src);
+                          e.target.src = getDefaultImages()[1];
+                        }}
                       />
                     </button>
                   ))}
@@ -154,8 +371,6 @@ export default function ApartmentDetail() {
                   <TabsTrigger value="feedback">Đánh giá</TabsTrigger>
                   <TabsTrigger value="comments">Bình luận</TabsTrigger>
                 </TabsList>
-
-                // ...existing code...
 
                 <TabsContent value="feedback">
                   <div className="space-y-4">
@@ -183,26 +398,55 @@ export default function ApartmentDetail() {
                       />
                       <Button onClick={handleSubmitReview}>Gửi đánh giá</Button>
                     </div>
-                    {/* Danh sách đánh giá */}
-                    {[1, 2].map((id) => (
-                      <Card key={id} className="hover:shadow-lg transition-shadow duration-200">
-                        <CardContent className="p-6">
-                          <div className="flex items-center gap-4 mb-4">
-                            <div>
-                              <p className="font-semibold text-gray-900">Người thuê {id}</p>
-                              <div className="flex text-yellow-500 mt-1">
-                                {[...Array(5)].map((_, i) => (
-                                  <Star key={i} className="w-4 h-4 fill-yellow-500" />
-                                ))}
+                    
+                    {/* Danh sách đánh giá từ API */}
+                    {apartment.reviews && apartment.reviews.length > 0 ? (
+                      apartment.reviews.map((review) => (
+                        <Card key={review.id} className="hover:shadow-lg transition-shadow duration-200">
+                          <CardContent className="p-6">
+                            <div className="flex items-center gap-4 mb-4">
+                              <div>
+                                <p className="font-semibold text-gray-900">{review.author || 'Người thuê'}</p>
+                                <div className="flex text-yellow-500 mt-1">
+                                  {[...Array(5)].map((_, i) => (
+                                    <Star key={i} className={`w-4 h-4 ${i < (review.rating || 5) ? 'fill-yellow-500' : 'text-gray-300'}`} />
+                                  ))}
+                                </div>
                               </div>
                             </div>
-                          </div>
-                          <p className="text-gray-700 leading-relaxed">
-                            Căn hộ sạch sẽ, an ninh tốt. Chủ nhà nhiệt tình, hỗ trợ nhanh chóng. Tiện ích đầy đủ, vị trí thuận lợi.
-                          </p>
-                        </CardContent>
-                      </Card>
-                    ))}
+                            <p className="text-gray-700 leading-relaxed">
+                              {review.comment || review.content || 'Căn hộ tốt, đáng thuê.'}
+                            </p>
+                            {review.createdAt && (
+                              <p className="text-sm text-gray-500 mt-2">
+                                {new Date(review.createdAt).toLocaleDateString('vi-VN')}
+                              </p>
+                            )}
+                          </CardContent>
+                        </Card>
+                      ))
+                    ) : (
+                      // Mock reviews nếu API chưa có
+                      [1, 2].map((id) => (
+                        <Card key={id} className="hover:shadow-lg transition-shadow duration-200">
+                          <CardContent className="p-6">
+                            <div className="flex items-center gap-4 mb-4">
+                              <div>
+                                <p className="font-semibold text-gray-900">Người thuê {id}</p>
+                                <div className="flex text-yellow-500 mt-1">
+                                  {[...Array(5)].map((_, i) => (
+                                    <Star key={i} className="w-4 h-4 fill-yellow-500" />
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
+                            <p className="text-gray-700 leading-relaxed">
+                              Căn hộ sạch sẽ, an ninh tốt. Chủ nhà nhiệt tình, hỗ trợ nhanh chóng. Tiện ích đầy đủ, vị trí thuận lợi.
+                            </p>
+                          </CardContent>
+                        </Card>
+                      ))
+                    )}
                   </div>
                 </TabsContent>
 
@@ -220,14 +464,16 @@ export default function ApartmentDetail() {
                       />
                       <Button onClick={handleSubmitComment}>Gửi bình luận</Button>
                     </div>
+                    
                     {/* Danh sách bình luận */}
                     {comments.length === 0 ? (
                       <div className="text-center text-gray-500">Chưa có bình luận nào</div>
                     ) : (
-                      comments.map((cmt, idx) => (
-                        <Card key={idx} className="p-4">
-                          <p className="font-semibold text-gray-900 mb-1">Người dùng</p>
-                          <p className="text-gray-700">{cmt}</p>
+                      comments.map((comment) => (
+                        <Card key={comment.id} className="p-4">
+                          <p className="font-semibold text-gray-900 mb-1">{comment.author}</p>
+                          <p className="text-gray-700">{comment.content}</p>
+                          <p className="text-sm text-gray-500 mt-1">{comment.createdAt}</p>
                         </Card>
                       ))
                     )}
@@ -243,21 +489,42 @@ export default function ApartmentDetail() {
               <div className="space-y-6">
                 <div>
                   <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                    Căn hộ Sunrise City View
+                    {apartment.title || apartment.name || 'Căn hộ'}
                   </h1>
                   <div className="flex items-center text-gray-600 mb-3">
                     <MapPin className="w-5 h-5 mr-2" />
-                    <span>Quận 7, TP.HCM</span>
+                    <span>{apartment.address || apartment.location || 'Địa chỉ chưa cập nhật'}</span>
                   </div>
                   <div className="text-3xl font-bold text-green-600 mb-4">
-                    10,000,000₫
+                    {apartment.price ? `${apartment.price.toLocaleString('vi-VN')}₫` : 'Liên hệ'}
                     <span className="text-base font-normal text-gray-600">/ tháng</span>
                   </div>
+                  
+                  {/* Thông tin thêm từ API */}
+                  {apartment.area && (
+                    <div className="text-sm text-gray-600 mb-2">
+                      <span className="font-medium">Diện tích:</span> {apartment.area}m²
+                    </div>
+                  )}
+                  {apartment.bedrooms && (
+                    <div className="text-sm text-gray-600 mb-2">
+                      <span className="font-medium">Phòng ngủ:</span> {apartment.bedrooms}
+                    </div>
+                  )}
+                  {apartment.bathrooms && (
+                    <div className="text-sm text-gray-600 mb-2">
+                      <span className="font-medium">Phòng tắm:</span> {apartment.bathrooms}
+                    </div>
+                  )}
                 </div>
+                
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-3">Tiện ích</h3>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-3">
+                    {apartment.description ? 'Mô tả' : 'Tiện ích'}
+                  </h3>
                   <p className="text-gray-700 text-sm bg-gray-50 rounded-xl p-4">
-                    Căn hộ được trang bị đầy đủ tiện ích: hồ bơi, phòng gym, bảo vệ 24/7, bãi đỗ xe rộng rãi, wifi miễn phí và nhiều tiện ích khác đáp ứng nhu cầu sinh hoạt hiện đại.
+                    {apartment.description || apartment.amenities || 
+                     'Căn hộ được trang bị đầy đủ tiện ích: hồ bơi, phòng gym, bảo vệ 24/7, bãi đỗ xe rộng rãi, wifi miễn phí và nhiều tiện ích khác đáp ứng nhu cầu sinh hoạt hiện đại.'}
                   </p>
                 </div>
 
@@ -319,13 +586,17 @@ export default function ApartmentDetail() {
                       <svg className="w-4 h-4 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                       </svg>
-                      <span className="text-gray-700">0987.654.321</span>
+                      <span className="text-gray-700">
+                        {apartment.ownerPhone || apartment.contactPhone || '0987.654.321'}
+                      </span>
                     </div>
                     <div className="flex items-center">
                       <svg className="w-4 h-4 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 002 2v10a2 2 0 002 2z" />
                       </svg>
-                      <span className="text-gray-700">owner@email.com</span>
+                      <span className="text-gray-700">
+                        {apartment.ownerEmail || apartment.contactEmail || 'owner@email.com'}
+                      </span>
                     </div>
                   </div>
                 </div>

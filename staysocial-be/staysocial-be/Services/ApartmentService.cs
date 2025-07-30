@@ -65,11 +65,17 @@ namespace staysocial_be.Services
             return true;
         }
 
+        // Trong ApartmentService.cs, sửa method GetByIdAsync:
         public async Task<ApartmentDto> GetByIdAsync(int id)
         {
-            var apartment = await _context.Apartments.Include(a => a.Owner).FirstOrDefaultAsync(a => a.ApartmentId == id);
-            return _mapper.Map<ApartmentDto>(apartment);
+            var apartment = await _context.Apartments
+                .Include(a => a.Owner)
+                .Include(a => a.Photos) // Thêm dòng này để include Photos
+                .FirstOrDefaultAsync(a => a.ApartmentId == id);
+
+            return apartment == null ? null : _mapper.Map<ApartmentDto>(apartment);
         }
+
         public async Task<IEnumerable<ApartmentDto>> GetApartmentsByOwnerAsync(string userId)
         {
             var apartments = await _context.Apartments

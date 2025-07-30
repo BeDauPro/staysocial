@@ -3,9 +3,9 @@ namespace staysocial_be.Models.Enums
 {
 	public enum OrderStatus
 	{
+        Pending,
         Paid,
-        Active,
-        Ended,
+        Failed,
         Cancelled
     }
 }

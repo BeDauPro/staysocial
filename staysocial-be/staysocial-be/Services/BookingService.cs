@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using staysocial_be.Data;
 using staysocial_be.DTOs.Booking;
 using staysocial_be.Models;
+using staysocial_be.Models.Enums;
 using staysocial_be.Services.Interfaces;
 
 namespace staysocial_be.Services
@@ -30,32 +31,39 @@ namespace staysocial_be.Services
 
         public async Task<BookingDto> GetBookingByIdAsync(int id)
         {
-            var booking = await _context.Bookings.FindAsync(id);
-            return _mapper.Map<BookingDto>(booking);
+            var booking = await _context.Bookings
+                .Include(b => b.User)
+                .Include(b => b.Apartment)
+                .FirstOrDefaultAsync(b => b.BookingId == id);
+
+            return booking == null ? null : _mapper.Map<BookingDto>(booking);
         }
 
-        public async Task<BookingDto> CreateBookingAsync(CreateBookingDto dto)
+        public async Task<BookingDto> CreateBookingAsync(CreateBookingDto dto, string userId)
         {
-            var timeParts = dto.TimeSlot.Split(" - ");
-            if (timeParts.Length != 2)
-                throw new ArgumentException("Invalid time slot format.");
+            var apartment = await _context.Apartments.FindAsync(dto.ApartmentId);
+            if (apartment == null) return null;
 
-            var startTime = TimeSpan.Parse(timeParts[0]);
-            var endTime = TimeSpan.Parse(timeParts[1]);
+            if (dto.RentalStartDate >= dto.RentalEndDate || dto.RentalStartDate.Date < DateTime.Today.Date)
+                return null;
 
-            var scheduledStart = dto.BookingDate.Date + startTime;
-            var scheduledEnd = dto.BookingDate.Date + endTime;
+            int totalMonths = ((dto.RentalEndDate.Year - dto.RentalStartDate.Year) * 12) + dto.RentalEndDate.Month - dto.RentalStartDate.Month + 1;
+
+            decimal monthlyRent = apartment.Price;
+            decimal totalRent = monthlyRent * totalMonths;
+            decimal deposit = totalRent * 0.3m;
 
             var booking = new Booking
             {
                 ApartmentId = dto.ApartmentId,
-                UserId = dto.UserId,
-                BookingDate = DateTime.UtcNow,
-                ScheduledTimeStart = scheduledStart,
-                ScheduledTimeEnd = scheduledEnd,
-                IsDepositPaid = dto.DepositAmount > 0,
-                DepositAmount = dto.DepositAmount,
-                Status = "Pending",
+                UserId = userId, 
+                RentalStartDate = dto.RentalStartDate,
+                RentalEndDate = dto.RentalEndDate,
+                TotalMonths = totalMonths,
+                MonthlyRent = monthlyRent,
+                DepositAmount = deposit,
+                TotalRentAmount = totalRent,
+                Status = BookingStatus.DepositPending,
                 CreatedAt = DateTime.UtcNow
             };
 
@@ -78,4 +86,3 @@ namespace staysocial_be.Services
         }
     }
 }
-

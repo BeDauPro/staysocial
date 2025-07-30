@@ -9,9 +9,8 @@ namespace staysocial_be.Data
     public class AppDbContext : IdentityDbContext<AppUser>
     {
         public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
-       
+
         public DbSet<Apartment> Apartments { get; set; }
-        public DbSet<ApartmentImage> ApartmentImages { get; set; }
         public DbSet<Reaction> Reactions { get; set; }
         public DbSet<Comment> Comments { get; set; }
         public DbSet<Booking> Bookings { get; set; }
@@ -26,31 +25,35 @@ namespace staysocial_be.Data
         {
             base.OnModelCreating(modelBuilder);
 
-            modelBuilder.Entity<UserRole>()
-                .HasKey(ur => new { ur.UserId, ur.RoleId });
-
             modelBuilder.Entity<Apartment>()
                 .HasOne(a => a.Owner)
                 .WithMany(u => u.OwnedApartments)
                 .HasForeignKey(a => a.OwnerId)
                 .OnDelete(DeleteBehavior.Restrict);
-            modelBuilder.Entity<Apartment>()
-                .HasOne(a => a.Owner)
-                .WithMany(u => u.OwnedApartments)
-                .HasForeignKey(a => a.OwnerId)
-                .OnDelete(DeleteBehavior.Cascade);
+
+            // Cấu hình Photo với nullable ApartmentId và SetNull behavior
+            modelBuilder.Entity<Photo>(entity =>
+            {
+                entity.Property(p => p.ApartmentId)
+                    .IsRequired(false); // Đảm bảo nullable
+
+                entity.HasOne(p => p.Apartment)
+                    .WithMany(a => a.Photos)
+                    .HasForeignKey(p => p.ApartmentId)
+                    .OnDelete(DeleteBehavior.SetNull);
+            });
+
             modelBuilder.Entity<Booking>()
               .HasOne(b => b.User)
-              .WithMany() 
+              .WithMany()
               .HasForeignKey(b => b.UserId)
               .OnDelete(DeleteBehavior.Restrict);
 
             modelBuilder.Entity<Booking>()
                 .HasOne(b => b.Apartment)
-                .WithMany() 
+                .WithMany()
                 .HasForeignKey(b => b.ApartmentId)
                 .OnDelete(DeleteBehavior.Restrict);
         }
     }
 }
-

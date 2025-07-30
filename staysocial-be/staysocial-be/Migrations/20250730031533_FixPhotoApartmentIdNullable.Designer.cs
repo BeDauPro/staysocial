@@ -11,8 +11,8 @@ using staysocial_be.Data;
 namespace staysocial_be.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20250722071354_Fixtypeofuserid")]
-    partial class Fixtypeofuserid
+    [Migration("20250730031533_FixPhotoApartmentIdNullable")]
+    partial class FixPhotoApartmentIdNullable
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
@@ -172,6 +172,9 @@ namespace staysocial_be.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime(6)");
 
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("tinyint(1)");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("longtext");
@@ -191,29 +194,6 @@ namespace staysocial_be.Migrations
                     b.HasIndex("OwnerId");
 
                     b.ToTable("Apartments");
-                });
-
-            modelBuilder.Entity("staysocial_be.Models.ApartmentImage", b =>
-                {
-                    b.Property<int>("ApartmentId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    b.Property<int>("ApartmentId1")
-                        .HasColumnType("int");
-
-                    b.Property<int>("ImageId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("ImageUrl")
-                        .IsRequired()
-                        .HasColumnType("longtext");
-
-                    b.HasKey("ApartmentId");
-
-                    b.HasIndex("ApartmentId1");
-
-                    b.ToTable("ApartmentImages");
                 });
 
             modelBuilder.Entity("staysocial_be.Models.AppUser", b =>
@@ -313,27 +293,29 @@ namespace staysocial_be.Migrations
                     b.Property<int>("ApartmentId")
                         .HasColumnType("int");
 
-                    b.Property<DateTime>("BookingDate")
-                        .HasColumnType("datetime(6)");
-
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime(6)");
 
                     b.Property<decimal>("DepositAmount")
                         .HasColumnType("decimal(65,30)");
 
-                    b.Property<bool>("IsDepositPaid")
-                        .HasColumnType("tinyint(1)");
+                    b.Property<decimal>("MonthlyRent")
+                        .HasColumnType("decimal(65,30)");
 
-                    b.Property<DateTime>("ScheduledTimeEnd")
+                    b.Property<DateTime>("RentalEndDate")
                         .HasColumnType("datetime(6)");
 
-                    b.Property<DateTime>("ScheduledTimeStart")
+                    b.Property<DateTime>("RentalStartDate")
                         .HasColumnType("datetime(6)");
 
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasColumnType("longtext");
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<int>("TotalMonths")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("TotalRentAmount")
+                        .HasColumnType("decimal(65,30)");
 
                     b.Property<string>("UserId")
                         .IsRequired()
@@ -364,10 +346,7 @@ namespace staysocial_be.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime(6)");
 
-                    b.Property<int>("UserId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("UserId1")
+                    b.Property<string>("UserId")
                         .IsRequired()
                         .HasColumnType("varchar(255)");
 
@@ -375,7 +354,7 @@ namespace staysocial_be.Migrations
 
                     b.HasIndex("ApartmentId");
 
-                    b.HasIndex("UserId1");
+                    b.HasIndex("UserId");
 
                     b.ToTable("Comments");
                 });
@@ -402,10 +381,7 @@ namespace staysocial_be.Migrations
                     b.Property<int>("Rating")
                         .HasColumnType("int");
 
-                    b.Property<int>("UserId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("UserId1")
+                    b.Property<string>("UserId")
                         .IsRequired()
                         .HasColumnType("varchar(255)");
 
@@ -415,7 +391,7 @@ namespace staysocial_be.Migrations
 
                     b.HasIndex("OrderId");
 
-                    b.HasIndex("UserId1");
+                    b.HasIndex("UserId");
 
                     b.ToTable("Feedbacks");
                 });
@@ -455,36 +431,35 @@ namespace staysocial_be.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    b.Property<int>("ApartmentId")
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("decimal(65,30)");
+
+                    b.Property<int>("BookingId")
                         .HasColumnType("int");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime(6)");
 
-                    b.Property<DateTime>("EndDate")
-                        .HasColumnType("datetime(6)");
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("longtext");
 
-                    b.Property<DateTime>("StartDate")
+                    b.Property<int?>("ForMonth")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("ForYear")
+                        .HasColumnType("int");
+
+                    b.Property<int>("OrderType")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("PaymentDate")
                         .HasColumnType("datetime(6)");
 
                     b.Property<int>("Status")
                         .HasColumnType("int");
 
-                    b.Property<decimal>("TotalAmount")
-                        .HasColumnType("decimal(65,30)");
-
-                    b.Property<int>("UserId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("UserId1")
-                        .IsRequired()
-                        .HasColumnType("varchar(255)");
-
                     b.HasKey("OrderId");
-
-                    b.HasIndex("ApartmentId");
-
-                    b.HasIndex("UserId1");
 
                     b.ToTable("Orders");
                 });
@@ -529,6 +504,9 @@ namespace staysocial_be.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
+                    b.Property<int?>("ApartmentId")
+                        .HasColumnType("int");
+
                     b.Property<string>("PublicId")
                         .IsRequired()
                         .HasColumnType("longtext");
@@ -541,6 +519,8 @@ namespace staysocial_be.Migrations
                         .HasColumnType("longtext");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("ApartmentId");
 
                     b.ToTable("Photos");
                 });
@@ -560,10 +540,7 @@ namespace staysocial_be.Migrations
                     b.Property<int>("Type")
                         .HasColumnType("int");
 
-                    b.Property<int>("UserId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("UserId1")
+                    b.Property<string>("UserId")
                         .IsRequired()
                         .HasColumnType("varchar(255)");
 
@@ -571,45 +548,9 @@ namespace staysocial_be.Migrations
 
                     b.HasIndex("ApartmentId");
 
-                    b.HasIndex("UserId1");
+                    b.HasIndex("UserId");
 
                     b.ToTable("Reactions");
-                });
-
-            modelBuilder.Entity("staysocial_be.Models.Role", b =>
-                {
-                    b.Property<int>("RoleId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("longtext");
-
-                    b.HasKey("RoleId");
-
-                    b.ToTable("Role");
-                });
-
-            modelBuilder.Entity("staysocial_be.Models.UserRole", b =>
-                {
-                    b.Property<int>("UserId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("RoleId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("UserId1")
-                        .IsRequired()
-                        .HasColumnType("varchar(255)");
-
-                    b.HasKey("UserId", "RoleId");
-
-                    b.HasIndex("RoleId");
-
-                    b.HasIndex("UserId1");
-
-                    b.ToTable("UserRole");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
@@ -668,21 +609,10 @@ namespace staysocial_be.Migrations
                     b.HasOne("staysocial_be.Models.AppUser", "Owner")
                         .WithMany("OwnedApartments")
                         .HasForeignKey("OwnerId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Owner");
-                });
-
-            modelBuilder.Entity("staysocial_be.Models.ApartmentImage", b =>
-                {
-                    b.HasOne("staysocial_be.Models.Apartment", "Apartment")
-                        .WithMany()
-                        .HasForeignKey("ApartmentId1")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Apartment");
                 });
 
             modelBuilder.Entity("staysocial_be.Models.Booking", b =>
@@ -714,7 +644,7 @@ namespace staysocial_be.Migrations
 
                     b.HasOne("staysocial_be.Models.AppUser", "User")
                         .WithMany()
-                        .HasForeignKey("UserId1")
+                        .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -739,7 +669,7 @@ namespace staysocial_be.Migrations
 
                     b.HasOne("staysocial_be.Models.AppUser", "User")
                         .WithMany()
-                        .HasForeignKey("UserId1")
+                        .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -761,25 +691,6 @@ namespace staysocial_be.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("staysocial_be.Models.Order", b =>
-                {
-                    b.HasOne("staysocial_be.Models.Apartment", "Apartment")
-                        .WithMany()
-                        .HasForeignKey("ApartmentId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("staysocial_be.Models.AppUser", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId1")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Apartment");
-
-                    b.Navigation("User");
-                });
-
             modelBuilder.Entity("staysocial_be.Models.Payment", b =>
                 {
                     b.HasOne("staysocial_be.Models.Booking", "Booking")
@@ -795,6 +706,17 @@ namespace staysocial_be.Migrations
                     b.Navigation("Order");
                 });
 
+            modelBuilder.Entity("staysocial_be.Models.Photo", b =>
+                {
+                    b.HasOne("staysocial_be.Models.Apartment", "Apartment")
+                        .WithMany("Photos")
+                        .HasForeignKey("ApartmentId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .IsRequired();
+
+                    b.Navigation("Apartment");
+                });
+
             modelBuilder.Entity("staysocial_be.Models.Reaction", b =>
                 {
                     b.HasOne("staysocial_be.Models.Apartment", "Apartment")
@@ -805,7 +727,7 @@ namespace staysocial_be.Migrations
 
                     b.HasOne("staysocial_be.Models.AppUser", "User")
                         .WithMany()
-                        .HasForeignKey("UserId1")
+                        .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -814,33 +736,14 @@ namespace staysocial_be.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("staysocial_be.Models.UserRole", b =>
+            modelBuilder.Entity("staysocial_be.Models.Apartment", b =>
                 {
-                    b.HasOne("staysocial_be.Models.Role", "Role")
-                        .WithMany("UserRoles")
-                        .HasForeignKey("RoleId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("staysocial_be.Models.AppUser", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId1")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Role");
-
-                    b.Navigation("User");
+                    b.Navigation("Photos");
                 });
 
             modelBuilder.Entity("staysocial_be.Models.AppUser", b =>
                 {
                     b.Navigation("OwnedApartments");
-                });
-
-            modelBuilder.Entity("staysocial_be.Models.Role", b =>
-                {
-                    b.Navigation("UserRoles");
                 });
 #pragma warning restore 612, 618
         }

@@ -7,7 +7,7 @@ namespace staysocial_be.Services.Interfaces
     {
         Task<IEnumerable<BookingDto>> GetAllBookingsAsync();
         Task<BookingDto> GetBookingByIdAsync(int id);
-        Task<BookingDto> CreateBookingAsync(CreateBookingDto dto);
+        Task<BookingDto> CreateBookingAsync(CreateBookingDto dto, string userId);
         Task<bool> DeleteBookingAsync(int id);
     }
 }

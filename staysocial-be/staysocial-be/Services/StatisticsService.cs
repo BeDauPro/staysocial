@@ -21,66 +21,77 @@ namespace staysocial_be.Services
             var now = DateTime.UtcNow;
             var thisMonth = now.Month;
             var lastMonth = now.AddMonths(-1).Month;
+            var lastMonthYear = now.AddMonths(-1).Year;
 
-            // 1. Doanh thu hiện tại (tháng này)
-            var thisMonthRevenue = await _context.Payments
-                .Where(p => p.Status == PaymentStatus.Success && p.PaidAt.Year == year && p.PaidAt.Month == thisMonth)
-                .SumAsync(p => p.Amount);
+            // 1. Doanh thu tháng này
+            var thisMonthRevenue = await _context.Orders
+                .Where(o => o.Status == OrderStatus.Paid
+                            && o.PaymentDate.Year == year
+                            && o.PaymentDate.Month == thisMonth
+                            && o.OrderType == OrderType.MonthlyRent) 
+                .SumAsync(o => o.Amount);
 
-            var lastMonthRevenue = await _context.Payments
-                .Where(p => p.Status == PaymentStatus.Success && p.PaidAt.Year == (lastMonth == 12 ? year - 1 : year) && p.PaidAt.Month == lastMonth)
-                .SumAsync(p => p.Amount);
+            // 2. Doanh thu tháng trước
+            var lastMonthRevenue = await _context.Orders
+                .Where(o => o.Status == OrderStatus.Paid
+                            && o.PaymentDate.Year == lastMonthYear
+                            && o.PaymentDate.Month == lastMonth
+                            && o.OrderType == OrderType.MonthlyRent)
+                .SumAsync(o => o.Amount);
 
             var revenueGrowth = lastMonthRevenue > 0
                 ? Math.Round((double)((thisMonthRevenue - lastMonthRevenue) / lastMonthRevenue) * 100, 1)
                 : 100.0;
 
-            // 2. Tỷ lệ lấp đầy = số booking đang dùng / tổng căn hộ
+            // 3. Tổng số căn hộ
             var totalApartments = await _context.Apartments.CountAsync();
 
+            // 4. Booking đang active
             var activeBookings = await _context.Bookings
-                .Where(b => b.Status == "Confirmed" && b.ScheduledTimeStart <= now && b.ScheduledTimeEnd >= now)
+                .Where(b => b.Status == BookingStatus.Active
+                            && b.RentalStartDate <= now
+                            && b.RentalEndDate >= now)
                 .CountAsync();
 
             var occupancyRate = totalApartments > 0
                 ? Math.Round((double)activeBookings / totalApartments * 100, 1)
                 : 0;
 
-            // Giả định: tăng trưởng tỷ lệ lấp đầy = so với tháng trước
+            // 5. So sánh tỷ lệ lấp đầy tháng trước
+            var lastMonthDate = now.AddMonths(-1);
             var lastMonthActiveBookings = await _context.Bookings
-                .Where(b => b.Status == "Confirmed" &&
-                            b.ScheduledTimeStart <= now.AddMonths(-1) &&
-                            b.ScheduledTimeEnd >= now.AddMonths(-1))
+                .Where(b => b.Status == BookingStatus.Active
+                            && b.RentalStartDate <= lastMonthDate
+                            && b.RentalEndDate >= lastMonthDate)
                 .CountAsync();
 
             var occupancyGrowth = lastMonthActiveBookings > 0
                 ? Math.Round((double)(activeBookings - lastMonthActiveBookings) / lastMonthActiveBookings * 100, 1)
                 : 100.0;
 
-            // 3. Tổng căn hộ
-            // -> đã lấy ở trên
-
-            // 4. Khách hàng mới (tạo trong tháng này)
+            // 6. Khách hàng mới trong tháng này
             var thisMonthCustomers = await _context.Users
                 .Where(u => u.CreatedAt.Year == year && u.CreatedAt.Month == thisMonth)
                 .CountAsync();
 
             var lastMonthCustomers = await _context.Users
-                .Where(u => u.CreatedAt.Year == (lastMonth == 12 ? year - 1 : year) && u.CreatedAt.Month == lastMonth)
+                .Where(u => u.CreatedAt.Year == lastMonthYear && u.CreatedAt.Month == lastMonth)
                 .CountAsync();
 
             var customerGrowth = lastMonthCustomers > 0
                 ? Math.Round((double)(thisMonthCustomers - lastMonthCustomers) / lastMonthCustomers * 100, 1)
                 : 100.0;
 
-            // 5. Doanh thu theo tháng
-            var monthlyRevenue = await _context.Payments
-                .Where(p => p.Status == PaymentStatus.Success && p.PaidAt.Year == year)
-                .GroupBy(p => p.PaidAt.Month)
+            // 7. Doanh thu theo tháng
+            var monthlyRevenue = await _context.Orders
+                .Where(o => o.Status == OrderStatus.Paid
+                            && o.OrderType == OrderType.MonthlyRent
+                            && o.PaymentDate.Year == year)
+                .GroupBy(o => o.PaymentDate.Month)
                 .Select(g => new MonthlyRevenueDto
                 {
                     Month = g.Key,
-                    Revenue = g.Sum(p => p.Amount)
+                    Revenue = g.Sum(o => o.Amount)
                 })
                 .ToListAsync();
 
@@ -92,17 +103,16 @@ namespace staysocial_be.Services
                 })
                 .ToList();
 
-            // 6. Biểu đồ tỷ lệ lấp đầy theo căn hộ
+            // 8. Biểu đồ tỷ lệ lấp đầy từng căn hộ
             var occupancyPerApartment = await _context.Apartments
                 .Select(a => new OccupancyRateDto
                 {
                     ApartmentName = a.Name,
-                    Rate = _context.Bookings.Any(b => b.ApartmentId == a.ApartmentId &&
-                                                      b.Status == "Confirmed" &&
-                                                      b.ScheduledTimeStart <= now &&
-                                                      b.ScheduledTimeEnd >= now)
-                            ? 100
-                            : 0
+                    Rate = _context.Bookings.Any(b => b.ApartmentId == a.ApartmentId
+                                                      && b.Status == BookingStatus.Active
+                                                      && b.RentalStartDate <= now
+                                                      && b.RentalEndDate >= now)
+                        ? 100 : 0
                 })
                 .ToListAsync();
 
@@ -119,6 +129,7 @@ namespace staysocial_be.Services
                 OccupancyRateChart = occupancyPerApartment
             };
         }
+
     }
 
 }

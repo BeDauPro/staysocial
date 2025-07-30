@@ -24,8 +24,7 @@ namespace staysocial_be.Controllers
             _context = context;
             _photoService = photoService;
         }
-
-        // [POST] Upload new photo
+     
         [HttpPost]
         [Authorize(Roles = "Landlord")]
         public async Task<IActionResult> UploadPhoto([FromForm] PhotoUploadDto dto)
@@ -35,14 +34,44 @@ namespace staysocial_be.Controllers
 
             var (url, publicId) = await _photoService.UploadImageAsync(dto.File);
 
-            var photo = new Photo { Url = url, PublicId = publicId };
+            var photo = new Photo
+            {
+                Url = url,
+                PublicId = publicId,
+                ApartmentId = dto.ApartmentId 
+            };
+
             _context.Photos.Add(photo);
             await _context.SaveChangesAsync();
 
-            return Ok(new PhotoDto { Id = photo.Id, Url = photo.Url, UploadedAt = photo.UploadedAt });
+            return Ok(new PhotoDto
+            {
+                Id = photo.Id,
+                Url = photo.Url,
+                UploadedAt = photo.UploadedAt,
+                ApartmentId = photo.ApartmentId
+            });
         }
 
-        // [GET] Get all photos
+        // ✅ Thêm endpoint lấy photos theo apartment
+        [HttpGet("apartment/{apartmentId}")]
+        public async Task<IActionResult> GetPhotosByApartment(int apartmentId)
+        {
+            var photos = await _context.Photos
+                .Where(p => p.ApartmentId == apartmentId)
+                .Select(p => new PhotoDto
+                {
+                    Id = p.Id,
+                    Url = p.Url,
+                    UploadedAt = p.UploadedAt,
+                    ApartmentId = p.ApartmentId
+                })
+                .ToListAsync();
+
+            return Ok(photos);
+        }
+
+        // ✅ Update GetAllPhotos để include ApartmentId
         [HttpGet]
         public async Task<IActionResult> GetAllPhotos()
         {
@@ -51,9 +80,9 @@ namespace staysocial_be.Controllers
                 {
                     Id = p.Id,
                     Url = p.Url,
-                    UploadedAt = p.UploadedAt
+                    UploadedAt = p.UploadedAt,
+                    ApartmentId = p.ApartmentId
                 }).ToListAsync();
-
             return Ok(photos);
         }
 

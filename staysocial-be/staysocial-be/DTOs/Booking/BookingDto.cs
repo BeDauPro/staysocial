@@ -1,17 +1,22 @@
 ﻿using System;
+using staysocial_be.Models.Enums;
+
 namespace staysocial_be.DTOs.Booking
 {
     public class BookingDto
     {
         public int BookingId { get; set; }
-        public string UserId { get; set; }
         public int ApartmentId { get; set; }
-        public DateTime BookingDate { get; set; }
-        public DateTime ScheduledTimeStart { get; set; }
-        public DateTime ScheduledTimeEnd { get; set; }
-        public bool IsDepositPaid { get; set; }
-        public string Status { get; set; }
-        public decimal DepositAmount { get; set; }
+
+        public DateTime RentalStartDate { get; set; }      
+        public DateTime RentalEndDate { get; set; }        
+        public int TotalMonths { get; set; }                
+
+        public decimal DepositAmount { get; set; }          
+        public decimal MonthlyRent { get; set; }            
+        public decimal TotalRentAmount { get; set; }        
+
+        public BookingStatus Status { get; set; }         
+        public DateTime CreatedAt { get; set; }
     }
 }
-

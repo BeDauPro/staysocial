@@ -6,7 +6,6 @@ import AdminLayout from "./components/Admin/AdminLayout";
 import PrivateRoute from "./components/PrivateRoute";
 import { useDispatch } from 'react-redux';
 import { syncFromStorage } from './redux/slices/authSlice';
-// Pages
 import Login from "./components/Login";
 import Register from "./components/Register";
 import ForgotPassword from "./components/ForgotPassword";

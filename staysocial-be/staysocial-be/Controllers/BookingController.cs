@@ -39,12 +39,17 @@ namespace staysocial_be.Controllers
         [Authorize(Roles = "User")]
         public async Task<IActionResult> CreateBooking([FromBody] CreateBookingDto dto)
         {
-            var result = await _bookingService.CreateBookingAsync(dto);
+            var userId = User.FindFirst("http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier")?.Value;
+            if (string.IsNullOrEmpty(userId))
+                return Unauthorized("Không tìm thấy người dùng.");
+
+            var result = await _bookingService.CreateBookingAsync(dto, userId);
             if (result == null)
-                return BadRequest("Tạo lịch hẹn thất bại");
+                return BadRequest("Thông tin đặt không hợp lệ hoặc căn hộ không tồn tại.");
 
             return Ok(result);
         }
+
 
 
         [HttpDelete("{id}")]

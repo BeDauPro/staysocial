@@ -6,6 +6,8 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using staysocial_be.Data;
 using staysocial_be.DTOs.Apartment;
 using staysocial_be.Models;
 using staysocial_be.Services;
@@ -20,11 +22,13 @@ namespace staysocial_be.Controllers
     {
         private readonly IApartmentService _service;
         private readonly UserManager<AppUser> _userManager;
-
+        private readonly AppDbContext _context;
         public ApartmentsController(IApartmentService service, UserManager<AppUser> userManager)
         {
             _service = service;
+
             _userManager = userManager;
+            
         }
 
         [HttpGet("approved")]
@@ -67,8 +71,15 @@ namespace staysocial_be.Controllers
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(int id)
         {
-            var result = await _service.GetByIdAsync(id);
-            return result == null ? NotFound() : Ok(result);
+            try
+            {
+                var apartment = await _service.GetByIdAsync(id);
+                return apartment == null ? NotFound() : Ok(apartment);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, "An error occurred while retrieving the apartment");
+            }
         }
 
         [HttpGet("my-apartments")]
