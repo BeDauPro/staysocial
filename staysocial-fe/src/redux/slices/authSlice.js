@@ -1,94 +1,79 @@
 import { createSlice } from '@reduxjs/toolkit';
+import { jwtDecode } from 'jwt-decode';
 
-// Hàm load state từ localStorage
 const loadStateFromStorage = () => {
   try {
     const token = localStorage.getItem('token');
-    const user = localStorage.getItem('user');
-    
-    console.log('Loading auth state from localStorage:');
-    console.log('Token exists:', !!token);
-    console.log('User exists:', !!user);
-    
-    if (token && user && token !== 'undefined' && user !== 'undefined') {
-      const userData = JSON.parse(user);
-      console.log('Parsed user data:', userData);
+    if (token && token !== 'undefined') {
+      const decoded = jwtDecode(token);
+      
+      const roleClaim = 'http://schemas.microsoft.com/ws/2008/06/identity/claims/role';
       
       return {
-        user: userData,
-        role: userData.role,
+        token,
+        userInfo: {
+          username: decoded.email || decoded.sub,
+          role: decoded[roleClaim],
+          email: decoded.email,
+        },
         isAuthenticated: true,
       };
     }
   } catch (error) {
-    console.error('Error loading auth state from localStorage:', error);
-    // Xóa dữ liệu lỗi
+    console.error('Error loading auth state:', error);
     localStorage.removeItem('token');
-    localStorage.removeItem('user');
   }
-  
   return {
-    user: null,
-    role: null,
+    token: null,
+    userInfo: null,
     isAuthenticated: false,
   };
 };
 
-// Load initial state từ localStorage
 const initialState = loadStateFromStorage();
-
-console.log('Auth slice initial state:', initialState);
 
 const authSlice = createSlice({
   name: 'auth',
   initialState,
   reducers: {
     login(state, action) {
-      console.log('Redux login action:', action.payload);
-      
-      state.user = action.payload.user;
-      state.role = action.payload.role;
-      state.isAuthenticated = true;
-      
-      // Đảm bảo localStorage được sync
-      if (action.payload.token) {
-        localStorage.setItem('token', action.payload.token);
+      const { token } = action.payload;
+      try {
+        const decoded = jwtDecode(token);
+        const roleClaim = 'http://schemas.microsoft.com/ws/2008/06/identity/claims/role';
+        
+        state.token = token;
+        state.userInfo = {
+          username: decoded.email || decoded.sub,
+          role: decoded[roleClaim], // ✅ Đúng claim name
+          email: decoded.email,
+        };
+        state.isAuthenticated = true;
+        localStorage.setItem('token', token);
+        
+        // Debug log
+        console.log('Login successful, role:', decoded[roleClaim]);
+      } catch (error) {
+        console.error('JWT decode error:', error);
+        state.token = null;
+        state.userInfo = null;
+        state.isAuthenticated = false;
+        localStorage.removeItem('token');
       }
-      localStorage.setItem('user', JSON.stringify(action.payload.user));
-      
-      console.log('Redux state after login:', {
-        user: state.user,
-        role: state.role,
-        isAuthenticated: state.isAuthenticated
-      });
     },
     
     logout(state) {
-      console.log('Redux logout action');
-      
-      state.user = null;
-      state.role = null;
+      state.token = null;
+      state.userInfo = null;
       state.isAuthenticated = false;
-      
-      // Xóa localStorage
       localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      
-      console.log('Redux state after logout:', {
-        user: state.user,
-        role: state.role,
-        isAuthenticated: state.isAuthenticated
-      });
     },
     
-    // Action để sync state từ localStorage (dùng khi cần)
     syncFromStorage(state) {
       const storageState = loadStateFromStorage();
-      state.user = storageState.user;
-      state.role = storageState.role;
+      state.token = storageState.token;
+      state.userInfo = storageState.userInfo;
       state.isAuthenticated = storageState.isAuthenticated;
-      
-      console.log('Synced state from storage:', storageState);
     }
   },
 });

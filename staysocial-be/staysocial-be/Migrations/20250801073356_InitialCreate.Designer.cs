@@ -11,8 +11,8 @@ using staysocial_be.Data;
 namespace staysocial_be.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20250730031533_FixPhotoApartmentIdNullable")]
-    partial class FixPhotoApartmentIdNullable
+    [Migration("20250801073356_InitialCreate")]
+    partial class InitialCreate
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
