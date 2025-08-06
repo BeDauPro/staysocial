@@ -235,8 +235,8 @@ const ProductsList = () => {
                                                         apt.status === 1 ? 'bg-yellow-100 text-yellow-800' : 
                                                         'bg-red-100 text-red-800'
                                                     }`}>
-                                                        {apt.status === 2 ? 'Đã duyệt' : 
-                                                         apt.status === 1 ? 'Chờ duyệt' : 'Bị ẩn'}
+                                                        {apt.status === 1 ? 'Đã duyệt' : 
+                                                         apt.status === 0 ? 'Chờ duyệt' : 'Bị ẩn'}
                                                     </span>
                                                     
                                                     {apt.availabilityStatus === 1 && (

@@ -1,12 +1,14 @@
 import { 
   Users, 
   FileText, 
+  ClipboardCheck
 } from 'lucide-react';
 
 const NavigationTabs = ({ activeTab, setActiveTab }) => {
   const tabs = [
     { id: 'posts', label: 'Quản lý bài đăng', icon: FileText },
     { id: 'users', label: 'Quản lý người dùng', icon: Users },
+    { id: 'landlordrequest', label: 'Quản lý yêu cầu', icon: ClipboardCheck}
   ];
 
   return (

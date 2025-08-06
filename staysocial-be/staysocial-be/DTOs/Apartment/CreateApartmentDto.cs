@@ -7,6 +7,7 @@ namespace staysocial_be.DTOs.Apartment
         public string Address { get; set; }
         public decimal Price { get; set; }
         public string Amenities { get; set; }
+        public List<IFormFile> Photos { get; set; }
     }
 }
 

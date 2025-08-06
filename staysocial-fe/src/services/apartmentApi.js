@@ -127,16 +127,15 @@ export const getMyApartments = async () => {
 };
 
 // 7. Tạo căn hộ mới (Landlord)
-export const createApartment = async (formData) => {
+export const createApartment = async (data) => {
   try {
-    const res = await axiosInstance.post('', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
+    const res = await axiosInstance.post('', data); 
     return res.data;
   } catch (err) {
     throw handleError(err);
   }
 };
+
 
 // 8. Cập nhật căn hộ (Landlord/Admin)
 export const updateApartment = async (id, formData) => {

@@ -18,7 +18,7 @@ import BookingForm from "./pages/Users/BookingForm";
 import CheckoutPage from "./pages/Users/CheckoutPage";
 import UserProfile from "./pages/Users/UserProfile";
 import History from "./pages/Users/History";
-
+import LandlordRequestForm from "./pages/Users/LandlordRequestForm";
 import RevenueStats from "./pages/Landlord/RevenueStats";
 import LandlordDashboard from "./pages/Landlord/LandlordDasboard";
 import ApartmentList from "./pages/Landlord/ApartmentList";
@@ -55,6 +55,7 @@ function App() {
           <Route path="/checkoutpage" element={<CheckoutPage />} />
           <Route path="/user-profile" element={<UserProfile />} />
           <Route path="/history" element={<History />} />
+          <Route path="/request-landlord" element={<LandlordRequestForm/>} />
         </Route>
       </Route>
 

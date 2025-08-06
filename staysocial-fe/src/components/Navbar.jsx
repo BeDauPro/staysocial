@@ -20,6 +20,9 @@ const Navbar = () => {
             console.error('Logout error:', error)
         }
     }
+    const handleRequestLandlord = () => {
+        navigate('/request-landlord')
+    }
     return (
         <header className="bg-white dark:bg-gray-900">
             <div className="mx-auto flex h-16 max-w-screen-xl items-center gap-8 px-4 sm:px-6 lg:px-8">
@@ -66,21 +69,18 @@ const Navbar = () => {
 
                     <div className="flex items-center gap-4">
                         <div className="sm:flex sm:gap-4">
-                            {!isAuthenticated ? (
-                                <a
-                                    className="block rounded-md bg-teal-600 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-teal-700 dark:hover:bg-teal-500"
-                                    href="/"
-                                >
-                                    Login
-                                </a>
-                            ) : (
-                                <button
-                                    onClick={handleLogout}
-                                    className="rounded-md bg-gray-100 px-5 py-2.5 text-sm font-medium text-teal-600 transition hover:text-teal-600/75 dark:bg-gray-800 dark:text-white dark:hover:text-white/75"
-                                >
-                                    Logout
-                                </button>
-                            )}
+                            <button
+                                onClick={handleRequestLandlord}
+                                 className="rounded-md bg-gray-100 px-5 py-2.5 text-sm font-medium text-teal-600 transition hover:text-teal-600/75 dark:bg-gray-800 dark:text-white dark:hover:text-white/75"
+                            >
+                                Request to be a Landlord
+                            </button>
+                            <button
+                                onClick={handleLogout}
+                                className="rounded-md bg-red-600 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-800"                    
+                            >
+                                Logout
+                            </button>
                         </div>
 
                         <button

@@ -1,5 +1,5 @@
 import { getApartmentById } from '../../services/apartmentApi';
-import { getAllPhotos, getPhotoById } from '../../services/photoApi'; 
+import { getAllPhotos, getPhotoById } from '../../services/photoApi';
 import React, { useState, useEffect } from "react";
 import { Star, Heart, ThumbsUp, ThumbsDown, MapPin, Wifi, Car, Shield, Waves, Dumbbell, Camera } from "lucide-react";
 import { useSelector } from 'react-redux';
@@ -85,12 +85,16 @@ const Button = ({ variant = "default", children, onClick, className = "", disabl
 };
 
 export default function ApartmentDetail({ apartmentId = 1 }) {
+
   // State cho apartment data
   const [apartment, setApartment] = useState(null);
   const [photos, setPhotos] = useState([]); // State riêng cho photos
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const role = useSelector((state) => state.auth.role);
+  // Trong component
+  const { userInfo } = useSelector(state => state.auth);
+  const role = userInfo?.role;
+
 
   // State cho UI interactions
   const [liked, setLiked] = useState(false);
@@ -110,15 +114,15 @@ export default function ApartmentDetail({ apartmentId = 1 }) {
     try {
       setLoading(true);
       setError(null);
-      
+
       // Fetch apartment data
       const apartmentData = await getApartmentById(apartmentId);
       setApartment(apartmentData);
       console.log('Apartment data:', apartmentData);
-      
+
       // Fetch photos - có thể từ apartment hoặc từ photo API riêng
       await fetchPhotos(apartmentData);
-      
+
     } catch (err) {
       setError(err.message || 'Không thể tải thông tin căn hộ');
       console.error('Error fetching apartment:', err);
@@ -136,7 +140,7 @@ export default function ApartmentDetail({ apartmentId = 1 }) {
       // Cách 1: Nếu apartment có photoIds array
       if (apartmentData.photoIds && apartmentData.photoIds.length > 0) {
         console.log('Method 1: Using photoIds:', apartmentData.photoIds);
-        const photoPromises = apartmentData.photoIds.map(photoId => 
+        const photoPromises = apartmentData.photoIds.map(photoId =>
           getPhotoById(photoId).catch(err => {
             console.warn(`Failed to fetch photo ${photoId}:`, err);
             return null;
@@ -145,23 +149,23 @@ export default function ApartmentDetail({ apartmentId = 1 }) {
         const fetchedPhotos = await Promise.all(photoPromises);
         photoList = fetchedPhotos.filter(photo => photo !== null);
       }
-      
+
       // Cách 2: Nếu apartment có photos array trực tiếp
       else if (apartmentData.photos && apartmentData.photos.length > 0) {
         console.log('Method 2: Using direct photos:', apartmentData.photos);
         photoList = apartmentData.photos;
       }
-      
+
       // Cách 3: Lấy tất cả photos (để test)
       else {
         console.log('Method 3: Fetching all photos');
         try {
           const allPhotos = await getAllPhotos();
           console.log('All photos received:', allPhotos);
-          
+
           // Nếu không có apartmentId field, lấy tất cả photos để test
           photoList = allPhotos || [];
-          
+
           // Uncomment dòng này nếu photos có apartmentId field
           // photoList = allPhotos.filter(photo => 
           //   photo.apartmentId === apartmentId || 
@@ -180,18 +184,18 @@ export default function ApartmentDetail({ apartmentId = 1 }) {
         if (typeof photo === 'string') {
           return photo; // Nếu là string URL trực tiếp
         }
-        
+
         // Với cấu trúc { id, url, uploadedAt }
         if (photo && photo.url) {
           return photo.url;
         }
-        
+
         // Fallback cho các field khác
-        return photo.filePath || 
-               photo.imageUrl || 
-               photo.src ||
-               `${BASE_URL}/photos/${photo.id}` ||
-               null;
+        return photo.filePath ||
+          photo.imageUrl ||
+          photo.src ||
+          `${BASE_URL}/photos/${photo.id}` ||
+          null;
       }).filter(url => url !== null); // Loại bỏ null values
 
       console.log('Processed photos:', processedPhotos);
@@ -202,7 +206,7 @@ export default function ApartmentDetail({ apartmentId = 1 }) {
         console.log('No photos found, using defaults');
         setPhotos(getDefaultImages());
       }
-      
+
     } catch (err) {
       console.error('Error fetching photos:', err);
       setPhotos(getDefaultImages());
@@ -222,7 +226,7 @@ export default function ApartmentDetail({ apartmentId = 1 }) {
       alert('Vui lòng chọn số sao đánh giá');
       return;
     }
-    
+
     try {
       alert(`Bạn đã đánh giá ${userRating} sao: ${userReview}`);
       setUserRating(0);
@@ -237,7 +241,7 @@ export default function ApartmentDetail({ apartmentId = 1 }) {
       alert('Vui lòng nhập bình luận');
       return;
     }
-    
+
     try {
       setComments(prev => [...prev, {
         id: Date.now(),
@@ -388,7 +392,7 @@ export default function ApartmentDetail({ apartmentId = 1 }) {
                       />
                       <Button onClick={handleSubmitReview}>Gửi đánh giá</Button>
                     </div>
-                    
+
                     {/* Danh sách đánh giá từ API */}
                     {apartment.reviews && apartment.reviews.length > 0 ? (
                       apartment.reviews.map((review) => (
@@ -454,7 +458,7 @@ export default function ApartmentDetail({ apartmentId = 1 }) {
                       />
                       <Button onClick={handleSubmitComment}>Gửi bình luận</Button>
                     </div>
-                    
+
                     {/* Danh sách bình luận */}
                     {comments.length === 0 ? (
                       <div className="text-center text-gray-500">Chưa có bình luận nào</div>
@@ -489,9 +493,9 @@ export default function ApartmentDetail({ apartmentId = 1 }) {
                     {apartment.price ? `${apartment.price.toLocaleString('vi-VN')}₫` : 'Liên hệ'}
                     <span className="text-base font-normal text-gray-600">/ tháng</span>
                   </div>
-                
+
                 </div>
-                
+
                 <div>
                   <h3 className="text-lg font-semibold text-gray-900 mb-3">
                     {apartment.amenities ? 'Mô tả' : 'Tiện ích'}
@@ -502,79 +506,79 @@ export default function ApartmentDetail({ apartmentId = 1 }) {
                 </div>
                 {role === 'User' && (
                   <>
-                {/* Reactions */}
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-3">Phản hồi</h3>
-                  <div className="flex items-center justify-center gap-4 p-4 bg-gray-50 rounded-xl">
-                    <Button
-                      variant="ghost"
-                      onClick={() => setLiked(!liked)}
-                      className={`flex-1 ${liked ? 'bg-red-50 text-red-600' : ''}`}
-                    >
-                      <Heart className={`w-5 h-5 mr-2 ${liked ? 'fill-red-500 text-red-500' : 'text-gray-400'}`} />
-                      {liked ? 'Đã thích' : 'Thích'}
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      onClick={() => setThumbsUp(!thumbsUp)}
-                      className={`flex-1 ${thumbsUp ? 'bg-green-50 text-green-600' : ''}`}
-                    >
-                      <ThumbsUp className={`w-5 h-5 mr-2 ${thumbsUp ? 'text-green-500' : 'text-gray-400'}`} />
-                      {thumbsUp ? 'Đã vote' : 'Vote'}
-                    </Button>
-                  </div>
-                </div>
-
-                {/* Action Buttons */}
-                <div className="space-y-3">
-                  <a
-                    href="/booking-form"
-                    className="block w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white py-4 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 text-center"
-                  >
-                    <span className="flex items-center justify-center">
-                      <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
-                      </svg>
-                      Đặt cọc ngay
-                    </span>
-                  </a>
-
-                  <a
-                    href="/checkoutpage"
-                    className="block w-full bg-gradient-to-r from-green-600 to-green-700 text-white py-4 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 text-center"
-                  >
-                    <span className="flex items-center justify-center">
-                      <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-2.5 5L9 21" />
-                      </svg>
-                      Thuê ngay
-                    </span>
-                  </a>
-                </div>
-
-                {/* Contact Info */}
-                <div className="p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl">
-                  <h4 className="font-semibold text-gray-900 mb-2">Liên hệ chủ nhà</h4>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex items-center">
-                      <svg className="w-4 h-4 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                      </svg>
-                      <span className="text-gray-700">
-                        {apartment.ownerPhone || apartment.contactPhone || '0987.654.321'}
-                      </span>
+                    {/* Reactions */}
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-900 mb-3">Phản hồi</h3>
+                      <div className="flex items-center justify-center gap-4 p-4 bg-gray-50 rounded-xl">
+                        <Button
+                          variant="ghost"
+                          onClick={() => setLiked(!liked)}
+                          className={`flex-1 ${liked ? 'bg-red-50 text-red-600' : ''}`}
+                        >
+                          <Heart className={`w-5 h-5 mr-2 ${liked ? 'fill-red-500 text-red-500' : 'text-gray-400'}`} />
+                          {liked ? 'Đã thích' : 'Thích'}
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          onClick={() => setThumbsUp(!thumbsUp)}
+                          className={`flex-1 ${thumbsUp ? 'bg-green-50 text-green-600' : ''}`}
+                        >
+                          <ThumbsUp className={`w-5 h-5 mr-2 ${thumbsUp ? 'text-green-500' : 'text-gray-400'}`} />
+                          {thumbsUp ? 'Đã vote' : 'Vote'}
+                        </Button>
+                      </div>
                     </div>
-                    <div className="flex items-center">
-                      <svg className="w-4 h-4 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 002 2v10a2 2 0 002 2z" />
-                      </svg>
-                      <span className="text-gray-700">
-                        {apartment.ownerEmail || apartment.contactEmail || 'owner@email.com'}
-                      </span>
+
+                    {/* Action Buttons */}
+                    <div className="space-y-3">
+                      <a
+                        href="/booking-form"
+                        className="block w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white py-4 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 text-center"
+                      >
+                        <span className="flex items-center justify-center">
+                          <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+                          </svg>
+                          Đặt cọc ngay
+                        </span>
+                      </a>
+
+                      <a
+                        href="/checkoutpage"
+                        className="block w-full bg-gradient-to-r from-green-600 to-green-700 text-white py-4 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 text-center"
+                      >
+                        <span className="flex items-center justify-center">
+                          <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-2.5 5L9 21" />
+                          </svg>
+                          Thuê ngay
+                        </span>
+                      </a>
                     </div>
-                  </div>
-                </div>
-                </>
+
+                    {/* Contact Info */}
+                    <div className="p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl">
+                      <h4 className="font-semibold text-gray-900 mb-2">Liên hệ chủ nhà</h4>
+                      <div className="space-y-2 text-sm">
+                        <div className="flex items-center">
+                          <svg className="w-4 h-4 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                          </svg>
+                          <span className="text-gray-700">
+                            {apartment.phoneNumber}
+                          </span>
+                        </div>
+                        <div className="flex items-center">
+                          <svg className="w-4 h-4 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 002 2v10a2 2 0 002 2z" />
+                          </svg>
+                          <span className="text-gray-700">
+                            {apartment.ownerEmail || apartment.contactEmail || 'owner@email.com'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </>
                 )}
               </div>
             </div>

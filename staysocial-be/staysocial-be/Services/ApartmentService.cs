@@ -16,12 +16,14 @@ namespace staysocial_be.Services
     {
         private readonly AppDbContext _context;
         private readonly IMapper _mapper;
+        private readonly IPhotoService _photoService;
         private readonly UserManager<AppUser> _userManager;
-        public ApartmentService(AppDbContext context, IMapper mapper, UserManager<AppUser> userManager)
+        public ApartmentService(AppDbContext context, IMapper mapper, UserManager<AppUser> userManager, IPhotoService photoService)
         {
             _context = context;
             _mapper = mapper;
             _userManager = userManager;
+            _photoService = photoService;
         }
 
 
@@ -94,14 +96,35 @@ namespace staysocial_be.Services
             var apartment = _mapper.Map<Apartment>(dto);
             apartment.OwnerId = userId;
             apartment.CreatedAt = DateTime.UtcNow;
-
             apartment.Status = ApartmentStatus.Pending;
 
             _context.Apartments.Add(apartment);
-            await _context.SaveChangesAsync();
+            await _context.SaveChangesAsync(); // Để lấy được apartment.Id
+
+            // Xử lý ảnh nếu có
+            if (dto.Photos != null && dto.Photos.Any())
+            {
+                foreach (var photoFile in dto.Photos)
+                {
+                    var uploadResult = await _photoService.UploadImageAsync(photoFile);
+
+                    var photo = new Photo
+                    {
+                        Url = uploadResult.Url,
+                        PublicId = uploadResult.PublicId,
+                        UploadedAt = DateTime.UtcNow,
+                        ApartmentId = apartment.ApartmentId
+                    };
+
+                    _context.Photos.Add(photo);
+                }
+
+                await _context.SaveChangesAsync(); 
+            }
 
             return _mapper.Map<ApartmentDto>(apartment);
         }
+
 
 
         public async Task<bool> UpdateAsync(int id, UpdateApartmentDto dto, string userId, bool isAdmin)
