@@ -20,6 +20,7 @@ namespace staysocial_be.Data
         public DbSet<AppUser> AppUsers { get; set; }
         public DbSet<LandlordRequest> LandlordRequests { get; set; }
         public DbSet<Photo> Photos { get; set; }
+        public DbSet<Revenue> Revenues { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

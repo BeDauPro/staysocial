@@ -3,8 +3,8 @@ namespace staysocial_be.Models.Enums
 {
 	public enum ReactionType
 	{
-        Like,
-        Dislike
+        Like = 1,
+        Dislike =2 
     }
 }
 

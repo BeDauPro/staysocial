@@ -1,6 +1,7 @@
 import axios from 'axios';
 
-const BASE_URL = 'http://localhost:5283/api/landlordrequest'; 
+const BASE_URL = 'http://localhost:5283/api/reactions'; // chỉnh nếu BE thay đổi
+
 const axiosInstance = axios.create({
   baseURL: BASE_URL,
   withCredentials: true,
@@ -18,11 +19,11 @@ axiosInstance.interceptors.request.use((config) => {
 // Response logging
 axiosInstance.interceptors.response.use(
   (response) => {
-    console.log('LandlordRequest API Success:', response.data);
+    console.log('Reactions API Success:', response.data);
     return response;
   },
   (error) => {
-    console.error('LandlordRequest API Error:', {
+    console.error('Reactions API Error:', {
       status: error.response?.status,
       data: error.response?.data,
       message: error.message,
@@ -31,7 +32,6 @@ axiosInstance.interceptors.response.use(
   }
 );
 
-// Error handler
 const handleError = (err) => {
   console.log('Full error object:', err);
   if (err.response && err.response.data) {
@@ -56,49 +56,38 @@ const handleError = (err) => {
   return new Error('Đã xảy ra lỗi.');
 };
 
-//
-// ========== LANDLORD REQUEST API FUNCTIONS ==========
-//
+const mapReactionTypeToEnum = (reactionType) => {
+  if (!reactionType) return null;
+  const t = reactionType.toString().toLowerCase();
+  if (t === 'like' || t === '1') return 1;     // Like = 1
+  if (t === 'dislike' || t === '2') return 2;  // Dislike = 2
+  return null;
+};
 
-// 1. Gửi yêu cầu trở thành Landlord (User)
-export const sendLandlordRequest = async (data) => {
+
+export const toggleReaction = async (data) => {
   try {
-    const res = await axiosInstance.post('/', data);
+    const payload = {
+      apartmentId: data.apartmentId,
+      type: mapReactionTypeToEnum(data.reactionType)
+    };
+    const res = await axiosInstance.post('/toggle', payload);
     return res.data;
   } catch (err) {
     throw handleError(err);
   }
 };
 
-// 2. Lấy danh sách tất cả yêu cầu (Admin)
-export const getAllLandlordRequests = async () => {
-  try {
-    const res = await axiosInstance.get('/');
-    return res.data;
-  } catch (err) {
-    throw handleError(err);
-  }
-};
 
-// 3. Duyệt yêu cầu (Admin)
-export const approveLandlordRequest = async (id) => {
+export const getReactionCount = async (apartmentId) => {
   try {
-    const res = await axiosInstance.post(`/${id}/approve`);
-    return res.data;
-  } catch (err) {
-    throw handleError(err);
-  }
-};
-
-// 4. Từ chối yêu cầu (Admin)
-export const rejectLandlordRequest = async (id, reason) => {
-  try {
-    const res = await axiosInstance.post(`/${id}/reject`, JSON.stringify(reason), {
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
-    return res.data;
+    const res = await axiosInstance.get(`/${apartmentId}/count`);
+    const data = res.data || {};
+    return {
+      likes: data.likes ?? data.likeCount ?? 0,
+      dislikes: data.dislikes ?? data.dislikeCount ?? 0,
+      userReaction: data.userReaction ?? data.userReactionType ?? null
+    };
   } catch (err) {
     throw handleError(err);
   }

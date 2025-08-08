@@ -28,6 +28,11 @@ builder.Services.AddScoped<IStatisticsService, StatisticsService>();
 builder.Services.AddScoped<ILandlordRequestService, LandlordRequestService>();
 builder.Services.AddScoped<IFeedbackService, FeedbackService>();
 builder.Services.AddScoped<ICommentService, CommentService>();
+builder.Services.AddScoped<IOrderService, OrderService>();
+builder.Services.AddScoped<IRevenueService, RevenueService>();
+builder.Services.AddSingleton<IVnPayService, VnPayService>();
+builder.Services.AddHostedService<DepositRecognitionService>();
+builder.Services.AddScoped<IReactionService, ReactionService>();
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseMySql(builder.Configuration.GetConnectionString("DefaultConnection"),
         ServerVersion.AutoDetect(builder.Configuration.GetConnectionString("DefaultConnection"))));

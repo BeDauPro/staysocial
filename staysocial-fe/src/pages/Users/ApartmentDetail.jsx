@@ -5,13 +5,15 @@ import {
   getCommentsByApartmentId, 
   getMyComments, 
   deleteComment 
-} from '../../services/commentApi'; // Import comment API functions
+} from '../../services/commentApi';
 import {
   createFeedback,
   getFeedbacksByApartmentId,
   getAverageRatingByApartmentId,
   getMyFeedbacks
-} from '../../services/feedbackApi'; // Import feedback API functions
+} from '../../services/feedbackApi';
+// Import reaction API functions
+import { toggleReaction, getReactionCount } from '../../services/reactionApi';
 import React, { useState, useEffect } from "react";
 import { Star, Heart, ThumbsUp, ThumbsDown, MapPin, Wifi, Car, Shield, Waves, Dumbbell, Camera, Trash2, Edit } from "lucide-react";
 import { useSelector } from 'react-redux';
@@ -101,52 +103,141 @@ export default function ApartmentDetail({ apartmentId = 1 }) {
 
   // State cho apartment data
   const [apartment, setApartment] = useState(null);
-  const [photos, setPhotos] = useState([]); // State riêng cho photos
+  const [photos, setPhotos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   
-  // Trong component
+  // Redux state
   const { userInfo } = useSelector(state => state.auth);
   const role = userInfo?.role;
   const currentUserId = userInfo?.id;
 
   // State cho UI interactions
-  const [liked, setLiked] = useState(false);
-  const [thumbsUp, setThumbsUp] = useState(false);
   const [selectedImage, setSelectedImage] = useState(0);
   const [userRating, setUserRating] = useState(0);
   const [userReview, setUserReview] = useState('');
   
-  // State cho comments - được cập nhật
+  // State cho reactions - UPDATED
+  const [reactions, setReactions] = useState({
+    likeCount: 0,
+    dislikeCount: 0,
+    userReaction: null // null | 'like' | 'dislike'
+  });
+  const [reactionLoading, setReactionLoading] = useState(false);
+  
+  // State cho comments
   const [userComment, setUserComment] = useState('');
   const [comments, setComments] = useState([]);
   const [loadingComments, setLoadingComments] = useState(false);
   const [submittingComment, setSubmittingComment] = useState(false);
 
-  // State cho feedbacks - thêm mới
+  // State cho feedbacks
   const [feedbacks, setFeedbacks] = useState([]);
   const [loadingFeedbacks, setLoadingFeedbacks] = useState(false);
   const [submittingFeedback, setSubmittingFeedback] = useState(false);
   const [averageRating, setAverageRating] = useState(0);
 
-  // Fetch apartment data khi component mount
+  // Fetch data khi component mount
   useEffect(() => {
     fetchApartmentData();
     fetchComments();
-    fetchFeedbacks(); // Thêm fetch feedbacks
+    fetchFeedbacks();
+    fetchReactionData(); // NEW: Fetch reaction data
   }, [apartmentId]);
+
+  // NEW: Fetch reaction data from API
+ // NEW: Fetch reaction data from API
+const fetchReactionData = async () => {
+  try {
+    const reactionData = await getReactionCount(apartmentId);
+    console.log('Reaction data received:', reactionData);
+
+    setReactions({
+      likeCount: reactionData.likes ?? 0,
+      dislikeCount: reactionData.dislikes ?? 0,
+      userReaction: reactions.userReaction ?? reactionData.userReaction ?? null
+    });
+  } catch (err) {
+    console.error('Error fetching reaction data:', err);
+    // Set default values on error
+    setReactions({
+      likeCount: 0,
+      dislikeCount: 0,
+      userReaction: null
+    });
+  }
+};
+
+
+  // NEW: Handle reaction toggle (like/dislike)
+const handleReactionToggle = async (reactionType) => {
+  if (!userInfo) {
+    alert('Vui lòng đăng nhập để thực hiện tương tác');
+    return;
+  }
+
+  if (reactionLoading) return;
+
+  try {
+    setReactionLoading(true);
+
+    // Determine optimistic next state:
+    // If user already did same reaction => clicking again should remove it => set userReaction -> null
+    const current = reactions.userReaction; // 'like' | 'dislike' | null
+    const willRemove = current === reactionType;
+    const newUserReaction = willRemove ? null : reactionType;
+
+    // Optimistically update UI counts:
+    setReactions(prev => {
+      let likeCount = prev.likeCount;
+      let dislikeCount = prev.dislikeCount;
+
+      // remove previous reaction if exists
+      if (prev.userReaction === 'like') likeCount = Math.max(0, likeCount - 1);
+      if (prev.userReaction === 'dislike') dislikeCount = Math.max(0, dislikeCount - 1);
+
+      // add new reaction if not removing
+      if (!willRemove) {
+        if (reactionType === 'like') likeCount = likeCount + 1;
+        if (reactionType === 'dislike') dislikeCount = dislikeCount + 1;
+      }
+
+      return {
+        likeCount,
+        dislikeCount,
+        userReaction: newUserReaction
+      };
+    });
+
+    // Send to backend (it will toggle server-side)
+    const payload = {
+      apartmentId: apartmentId,
+      reactionType // 'like' or 'dislike' - reactionApi maps this to enum
+    };
+    console.log('Sending reaction toggle:', payload);
+    await toggleReaction(payload);
+
+    // Re-fetch authoritative counts to avoid drift
+    await fetchReactionData();
+  } catch (err) {
+    console.error('Error toggling reaction:', err);
+    alert('Có lỗi khi thực hiện tương tác: ' + (err.message || err));
+    // on error, re-fetch to revert optimistic UI
+    try { await fetchReactionData(); } catch (e) { /* ignore */ }
+  } finally {
+    setReactionLoading(false);
+  }
+};
 
   const fetchApartmentData = async () => {
     try {
       setLoading(true);
       setError(null);
 
-      // Fetch apartment data
       const apartmentData = await getApartmentById(apartmentId);
       setApartment(apartmentData);
       console.log('Apartment data:', apartmentData);
 
-      // Fetch photos - có thể từ apartment hoặc từ photo API riêng
       await fetchPhotos(apartmentData);
 
     } catch (err) {
@@ -157,7 +248,6 @@ export default function ApartmentDetail({ apartmentId = 1 }) {
     }
   };
 
-  // Fetch comments từ API
   const fetchComments = async () => {
     try {
       setLoadingComments(true);
@@ -172,7 +262,6 @@ export default function ApartmentDetail({ apartmentId = 1 }) {
     }
   };
 
-  // Fetch feedbacks từ API - thêm mới
   const fetchFeedbacks = async () => {
     try {
       setLoadingFeedbacks(true);
@@ -199,7 +288,6 @@ export default function ApartmentDetail({ apartmentId = 1 }) {
 
       console.log('Fetching photos for apartment:', apartmentData);
 
-      // Cách 1: Nếu apartment có photoIds array
       if (apartmentData.photoIds && apartmentData.photoIds.length > 0) {
         console.log('Method 1: Using photoIds:', apartmentData.photoIds);
         const photoPromises = apartmentData.photoIds.map(photoId =>
@@ -211,28 +299,16 @@ export default function ApartmentDetail({ apartmentId = 1 }) {
         const fetchedPhotos = await Promise.all(photoPromises);
         photoList = fetchedPhotos.filter(photo => photo !== null);
       }
-
-      // Cách 2: Nếu apartment có photos array trực tiếp
       else if (apartmentData.photos && apartmentData.photos.length > 0) {
         console.log('Method 2: Using direct photos:', apartmentData.photos);
         photoList = apartmentData.photos;
       }
-
-      // Cách 3: Lấy tất cả photos (để test)
       else {
         console.log('Method 3: Fetching all photos');
         try {
           const allPhotos = await getAllPhotos();
           console.log('All photos received:', allPhotos);
-
-          // Nếu không có apartmentId field, lấy tất cả photos để test
           photoList = allPhotos || [];
-
-          // Uncomment dòng này nếu photos có apartmentId field
-          // photoList = allPhotos.filter(photo => 
-          //   photo.apartmentId === apartmentId || 
-          //   photo.relatedId === apartmentId
-          // );
         } catch (err) {
           console.warn('Failed to fetch all photos:', err);
           photoList = [];
@@ -241,24 +317,21 @@ export default function ApartmentDetail({ apartmentId = 1 }) {
 
       console.log('Photo list before processing:', photoList);
 
-      // Process photos để lấy URL
       const processedPhotos = photoList.map(photo => {
         if (typeof photo === 'string') {
-          return photo; // Nếu là string URL trực tiếp
+          return photo;
         }
 
-        // Với cấu trúc { id, url, uploadedAt }
         if (photo && photo.url) {
           return photo.url;
         }
 
-        // Fallback cho các field khác
         return photo.filePath ||
           photo.imageUrl ||
           photo.src ||
           `${BASE_URL}/photos/${photo.id}` ||
           null;
-      }).filter(url => url !== null); // Loại bỏ null values
+      }).filter(url => url !== null);
 
       console.log('Processed photos:', processedPhotos);
 
@@ -297,10 +370,9 @@ export default function ApartmentDetail({ apartmentId = 1 }) {
     try {
       setSubmittingFeedback(true);
       
-      // Tạm thời để orderId = 1 (bạn cần truyền orderId thực tế)
       const feedbackData = {
         apartmentId: apartmentId,
-        orderId: 1, // Cần được truyền từ props hoặc state
+        orderId: 1,
         rating: userRating,
         comment: userReview.trim()
       };
@@ -309,10 +381,8 @@ export default function ApartmentDetail({ apartmentId = 1 }) {
       const newFeedback = await createFeedback(feedbackData);
       console.log('Feedback created:', newFeedback);
       
-      // Refresh feedbacks list
       await fetchFeedbacks();
       
-      // Clear form
       setUserRating(0);
       setUserReview('');
       alert('Đánh giá đã được gửi thành công!');
@@ -325,7 +395,6 @@ export default function ApartmentDetail({ apartmentId = 1 }) {
     }
   };
 
-  // Cập nhật hàm submit comment để sử dụng API
   const handleSubmitComment = async () => {
     if (userComment.trim() === '') {
       alert('Vui lòng nhập bình luận');
@@ -344,10 +413,8 @@ export default function ApartmentDetail({ apartmentId = 1 }) {
       const newComment = await createComment(commentData);
       console.log('Comment created:', newComment);
       
-      // Refresh comments list
       await fetchComments();
       
-      // Clear form
       setUserComment('');
       alert('Bình luận đã được gửi thành công!');
       
@@ -359,7 +426,6 @@ export default function ApartmentDetail({ apartmentId = 1 }) {
     }
   };
 
-  // Hàm xóa comment
   const handleDeleteComment = async (commentId) => {
     if (!window.confirm('Bạn có chắc chắn muốn xóa bình luận này?')) {
       return;
@@ -367,7 +433,7 @@ export default function ApartmentDetail({ apartmentId = 1 }) {
 
     try {
       await deleteComment(commentId);
-      await fetchComments(); // Refresh comments list
+      await fetchComments();
       alert('Bình luận đã được xóa!');
     } catch (err) {
       console.error('Error deleting comment:', err);
@@ -390,7 +456,6 @@ export default function ApartmentDetail({ apartmentId = 1 }) {
     );
   }
 
-  // Error state
   if (error) {
     return (
       <div className="bg-gradient-to-br from-blue-50 via-white to-purple-50 p-4">
@@ -424,12 +489,12 @@ export default function ApartmentDetail({ apartmentId = 1 }) {
     );
   }
 
-
   const images = photos.length > 0 ? photos : getDefaultImages();
 
   console.log('Current images for display:', images);
   console.log('Photos state:', photos);
   console.log('Selected image index:', selectedImage);
+  console.log('Current reactions state:', reactions);
 
   return (
     <div className="bg-gradient-to-br from-blue-50 via-white to-purple-50 p-4">
@@ -488,7 +553,6 @@ export default function ApartmentDetail({ apartmentId = 1 }) {
 
                 <TabsContent value="feedback">
                   <div className="space-y-4">
-                    {/* Hiển thị rating trung bình */}
                     {averageRating > 0 && (
                       <div className="bg-blue-50 rounded-xl p-4 mb-4">
                         <div className="flex items-center justify-between">
@@ -519,7 +583,6 @@ export default function ApartmentDetail({ apartmentId = 1 }) {
                       </div>
                     )}
 
-                    {/* Form đánh giá - cập nhật */}
                     {userInfo && (
                       <div className="bg-gray-50 rounded-xl p-4 mb-4">
                         <p className="font-semibold mb-2 text-gray-700">Đánh giá căn hộ này</p>
@@ -570,7 +633,6 @@ export default function ApartmentDetail({ apartmentId = 1 }) {
                       </div>
                     )}
 
-                    {/* Loading feedbacks */}
                     {loadingFeedbacks && (
                       <div className="text-center py-4">
                         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
@@ -578,7 +640,6 @@ export default function ApartmentDetail({ apartmentId = 1 }) {
                       </div>
                     )}
 
-                    {/* Danh sách đánh giá từ API */}
                     {!loadingFeedbacks && (
                       <>
                         {feedbacks.length === 0 ? (
@@ -626,7 +687,6 @@ export default function ApartmentDetail({ apartmentId = 1 }) {
 
                 <TabsContent value="comments">
                   <div className="space-y-4">
-                    {/* Form bình luận - cập nhật */}
                     {userInfo && (
                       <div className="bg-gray-50 rounded-xl p-4 mb-4">
                         <p className="font-semibold mb-2 text-gray-700">Bình luận về căn hộ</p>
@@ -653,7 +713,6 @@ export default function ApartmentDetail({ apartmentId = 1 }) {
                       </div>
                     )}
 
-                    {/* Loading comments */}
                     {loadingComments && (
                       <div className="text-center py-4">
                         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
@@ -661,7 +720,6 @@ export default function ApartmentDetail({ apartmentId = 1 }) {
                       </div>
                     )}
 
-                    {/* Danh sách bình luận từ API */}
                     {!loadingComments && (
                       <>
                         {comments.length === 0 ? (
@@ -695,7 +753,6 @@ export default function ApartmentDetail({ apartmentId = 1 }) {
                                     </p>
                                   </div>
                                   
-                                  {/* Nút xóa chỉ hiện với comment của user hiện tại */}
                                   {currentUserId && comment.userId === currentUserId && (
                                     <Button 
                                       variant="danger"
@@ -734,7 +791,6 @@ export default function ApartmentDetail({ apartmentId = 1 }) {
                     {apartment.price ? `${apartment.price.toLocaleString('vi-VN')}₫` : 'Liên hệ'}
                     <span className="text-base font-normal text-gray-600">/ tháng</span>
                   </div>
-
                 </div>
 
                 <div>
@@ -745,29 +801,109 @@ export default function ApartmentDetail({ apartmentId = 1 }) {
                     {apartment.amenities}
                   </p>
                 </div>
+
                 {role === 'User' && (
                   <>
-                    {/* Reactions */}
+                    {/* UPDATED: Reactions Section with Real API Integration */}
                     <div>
                       <h3 className="text-lg font-semibold text-gray-900 mb-3">Phản hồi</h3>
-                      <div className="flex items-center justify-center gap-4 p-4 bg-gray-50 rounded-xl">
+                      <div className="flex items-center justify-center gap-2 p-4 bg-gray-50 rounded-xl">
+                        {/* Like Button */}
                         <Button
                           variant="ghost"
-                          onClick={() => setLiked(!liked)}
-                          className={`flex-1 ${liked ? 'bg-red-50 text-red-600' : ''}`}
+                          onClick={() => handleReactionToggle('like')}
+                          disabled={reactionLoading}
+                          className={`flex-1 relative ${
+                            reactions.userReaction === 'like' 
+                              ? 'bg-red-50 text-red-600 border-red-200' 
+                              : 'hover:bg-red-50'
+                          }`}
                         >
-                          <Heart className={`w-5 h-5 mr-2 ${liked ? 'fill-red-500 text-red-500' : 'text-gray-400'}`} />
-                          {liked ? 'Đã thích' : 'Thích'}
+                          <Heart 
+                            className={`w-5 h-5 mr-2 ${
+                              reactions.userReaction === 'like' 
+                                ? 'fill-red-500 text-red-500' 
+                                : 'text-gray-400'
+                            }`} 
+                          />
+                          <span className="flex items-center">
+                            {reactions.userReaction === 'like' ? 'Đã thích' : 'Thích'}
+                            {reactions.likeCount > 0 && (
+                              <span className="ml-1 bg-red-100 text-red-600 text-xs px-2 py-1 rounded-full">
+                                {reactions.likeCount}
+                              </span>
+                            )}
+                          </span>
+                          {reactionLoading && (
+                            <div className="absolute inset-0 flex items-center justify-center bg-white/80 rounded-lg">
+                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-600"></div>
+                            </div>
+                          )}
                         </Button>
+
+                        {/* Dislike Button */}
                         <Button
                           variant="ghost"
-                          onClick={() => setThumbsUp(!thumbsUp)}
-                          className={`flex-1 ${thumbsUp ? 'bg-green-50 text-green-600' : ''}`}
+                          onClick={() => handleReactionToggle('dislike')}
+                          disabled={reactionLoading}
+                          className={`flex-1 relative ${
+                            reactions.userReaction === 'dislike' 
+                              ? 'bg-gray-100 text-gray-700 border-gray-300' 
+                              : 'hover:bg-gray-100'
+                          }`}
                         >
-                          <ThumbsUp className={`w-5 h-5 mr-2 ${thumbsUp ? 'text-green-500' : 'text-gray-400'}`} />
-                          {thumbsUp ? 'Đã vote' : 'Vote'}
+                          <ThumbsDown 
+                            className={`w-5 h-5 mr-2 ${
+                              reactions.userReaction === 'dislike' 
+                                ? 'text-gray-600' 
+                                : 'text-gray-400'
+                            }`} 
+                          />
+                          <span className="flex items-center">
+                            {reactions.userReaction === 'dislike' ? 'Đã dislike' : 'Không thích'}
+                            {reactions.dislikeCount > 0 && (
+                              <span className="ml-1 bg-gray-200 text-gray-700 text-xs px-2 py-1 rounded-full">
+                                {reactions.dislikeCount}
+                              </span>
+                            )}
+                          </span>
+                          {reactionLoading && (
+                            <div className="absolute inset-0 flex items-center justify-center bg-white/80 rounded-lg">
+                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600"></div>
+                            </div>
+                          )}
                         </Button>
                       </div>
+
+                      {/* Reaction Summary */}
+                      {(reactions.likeCount > 0 || reactions.dislikeCount > 0) && (
+                        <div className="mt-2 text-sm text-gray-600 text-center">
+                          <span>
+                            {reactions.likeCount > 0 && (
+                              <span className="text-red-600 font-medium">
+                                {reactions.likeCount} lượt thích
+                              </span>
+                            )}
+                            {reactions.likeCount > 0 && reactions.dislikeCount > 0 && ' • '}
+                            {reactions.dislikeCount > 0 && (
+                              <span className="text-gray-600 font-medium">
+                                {reactions.dislikeCount} lượt không thích
+                              </span>
+                            )}
+                          </span>
+                        </div>
+                      )}
+
+                      {/* User must login message */}
+                      {!userInfo && (
+                        <div className="mt-2 text-sm text-center">
+                          <span className="text-gray-500">
+                            <a href="/login" className="text-blue-600 hover:underline">
+                              Đăng nhập
+                            </a> để thể hiện cảm xúc
+                          </span>
+                        </div>
+                      )}
                     </div>
 
                     {/* Action Buttons */}

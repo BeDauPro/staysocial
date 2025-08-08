@@ -23,6 +23,7 @@ namespace staysocial_be.Models
         // Trạng thái
         public BookingStatus Status { get; set; }
         public DateTime CreatedAt { get; set; }
+        public bool DepositRecognized { get; set; } = false;
     }
 }
 

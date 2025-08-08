@@ -43,6 +43,8 @@
     <None Remove="DTOs\LandlordRequest\" />
     <None Remove="DTOs\Feedback\" />
     <None Remove="DTOs\Comment\" />
+    <None Remove="DTOs\Order\" />
+    <None Remove="DTOs\Reaction\" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Models\" />
@@ -63,5 +65,7 @@
     <Folder Include="DTOs\LandlordRequest\" />
     <Folder Include="DTOs\Feedback\" />
     <Folder Include="DTOs\Comment\" />
+    <Folder Include="DTOs\Order\" />
+    <Folder Include="DTOs\Reaction\" />
   </ItemGroup>
 </Project>
