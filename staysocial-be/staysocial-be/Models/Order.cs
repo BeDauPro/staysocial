@@ -14,9 +14,8 @@ namespace staysocial_be.Models
         public DateTime PaymentDate { get; set; }
         public OrderStatus Status { get; set; }
 
-        // Thông tin tháng (cho MonthlyRent)
-        public int? ForYear { get; set; }                   // VD: 2024
-        public int? ForMonth { get; set; }                  // VD: 8 (tháng 8)
+        public int? ForYear { get; set; }                  
+        public int? ForMonth { get; set; }                  
 
         public string Description { get; set; }
         public DateTime CreatedAt { get; set; }

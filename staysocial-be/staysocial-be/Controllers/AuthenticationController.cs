@@ -60,14 +60,13 @@ namespace staysocial_be.Controllers
             if (!result.Succeeded)
                 return BadRequest(new { error = "Không thể tạo tài khoản.", details = result.Errors });
 
-            // Gán mặc định vai trò là "User"
+        
             const string defaultRole = "User";
             if (!await _roleManager.RoleExistsAsync(defaultRole))
                 await _roleManager.CreateAsync(new IdentityRole(defaultRole));
 
             await _userManager.AddToRoleAsync(user, defaultRole);
 
-            // Gửi email xác thực
             var verifyLink = $"{_configuration["App:VerifyEmailUrl"]}?token={verificationToken}";
             var message = $"<h3>Xác thực tài khoản</h3><p>Nhấn vào liên kết sau để xác thực tài khoản:</p><a href='{verifyLink}'>{verifyLink}</a>";
 

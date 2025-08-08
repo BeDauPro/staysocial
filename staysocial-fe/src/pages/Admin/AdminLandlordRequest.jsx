@@ -29,7 +29,7 @@ const AdminLandlordRequests = ({ onUpdateRequest }) => {
     setRequests(
       (data || []).map(item => ({
         ...item,
-        status: (item.Status || item.status || '').toLowerCase(), // map Status về status, viết thường
+        status: (item.Status || item.status || '').toLowerCase(), 
         name: item.Name || item.name,
         phone: item.Phone || item.phone,
         email: item.Email || item.email,

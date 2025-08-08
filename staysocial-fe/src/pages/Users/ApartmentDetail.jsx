@@ -1,7 +1,19 @@
 import { getApartmentById } from '../../services/apartmentApi';
 import { getAllPhotos, getPhotoById } from '../../services/photoApi';
+import { 
+  createComment, 
+  getCommentsByApartmentId, 
+  getMyComments, 
+  deleteComment 
+} from '../../services/commentApi'; // Import comment API functions
+import {
+  createFeedback,
+  getFeedbacksByApartmentId,
+  getAverageRatingByApartmentId,
+  getMyFeedbacks
+} from '../../services/feedbackApi'; // Import feedback API functions
 import React, { useState, useEffect } from "react";
-import { Star, Heart, ThumbsUp, ThumbsDown, MapPin, Wifi, Car, Shield, Waves, Dumbbell, Camera } from "lucide-react";
+import { Star, Heart, ThumbsUp, ThumbsDown, MapPin, Wifi, Car, Shield, Waves, Dumbbell, Camera, Trash2, Edit } from "lucide-react";
 import { useSelector } from 'react-redux';
 
 // Define BASE_URL for photo URLs
@@ -70,7 +82,8 @@ const Button = ({ variant = "default", children, onClick, className = "", disabl
   const baseClasses = "inline-flex items-center justify-center rounded-lg font-medium transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed";
   const variants = {
     default: "bg-blue-600 text-white px-4 py-2 hover:bg-blue-700 disabled:hover:bg-blue-600",
-    ghost: "bg-transparent hover:bg-gray-100 px-3 py-2"
+    ghost: "bg-transparent hover:bg-gray-100 px-3 py-2",
+    danger: "bg-red-600 text-white px-3 py-1 text-sm hover:bg-red-700"
   };
 
   return (
@@ -91,10 +104,11 @@ export default function ApartmentDetail({ apartmentId = 1 }) {
   const [photos, setPhotos] = useState([]); // State riêng cho photos
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  
   // Trong component
   const { userInfo } = useSelector(state => state.auth);
   const role = userInfo?.role;
-
+  const currentUserId = userInfo?.id;
 
   // State cho UI interactions
   const [liked, setLiked] = useState(false);
@@ -102,12 +116,24 @@ export default function ApartmentDetail({ apartmentId = 1 }) {
   const [selectedImage, setSelectedImage] = useState(0);
   const [userRating, setUserRating] = useState(0);
   const [userReview, setUserReview] = useState('');
+  
+  // State cho comments - được cập nhật
   const [userComment, setUserComment] = useState('');
   const [comments, setComments] = useState([]);
+  const [loadingComments, setLoadingComments] = useState(false);
+  const [submittingComment, setSubmittingComment] = useState(false);
+
+  // State cho feedbacks - thêm mới
+  const [feedbacks, setFeedbacks] = useState([]);
+  const [loadingFeedbacks, setLoadingFeedbacks] = useState(false);
+  const [submittingFeedback, setSubmittingFeedback] = useState(false);
+  const [averageRating, setAverageRating] = useState(0);
 
   // Fetch apartment data khi component mount
   useEffect(() => {
     fetchApartmentData();
+    fetchComments();
+    fetchFeedbacks(); // Thêm fetch feedbacks
   }, [apartmentId]);
 
   const fetchApartmentData = async () => {
@@ -128,6 +154,42 @@ export default function ApartmentDetail({ apartmentId = 1 }) {
       console.error('Error fetching apartment:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Fetch comments từ API
+  const fetchComments = async () => {
+    try {
+      setLoadingComments(true);
+      const commentsData = await getCommentsByApartmentId(apartmentId);
+      console.log('Comments data:', commentsData);
+      setComments(commentsData || []);
+    } catch (err) {
+      console.error('Error fetching comments:', err);
+      setComments([]);
+    } finally {
+      setLoadingComments(false);
+    }
+  };
+
+  // Fetch feedbacks từ API - thêm mới
+  const fetchFeedbacks = async () => {
+    try {
+      setLoadingFeedbacks(true);
+      const [feedbacksData, averageData] = await Promise.all([
+        getFeedbacksByApartmentId(apartmentId),
+        getAverageRatingByApartmentId(apartmentId)
+      ]);
+      console.log('Feedbacks data:', feedbacksData);
+      console.log('Average rating data:', averageData);
+      setFeedbacks(feedbacksData || []);
+      setAverageRating(averageData?.averageRating || 0);
+    } catch (err) {
+      console.error('Error fetching feedbacks:', err);
+      setFeedbacks([]);
+      setAverageRating(0);
+    } finally {
+      setLoadingFeedbacks(false);
     }
   };
 
@@ -227,15 +289,43 @@ export default function ApartmentDetail({ apartmentId = 1 }) {
       return;
     }
 
+    if (userReview.trim() === '') {
+      alert('Vui lòng nhập nội dung đánh giá');
+      return;
+    }
+
     try {
-      alert(`Bạn đã đánh giá ${userRating} sao: ${userReview}`);
+      setSubmittingFeedback(true);
+      
+      // Tạm thời để orderId = 1 (bạn cần truyền orderId thực tế)
+      const feedbackData = {
+        apartmentId: apartmentId,
+        orderId: 1, // Cần được truyền từ props hoặc state
+        rating: userRating,
+        comment: userReview.trim()
+      };
+
+      console.log('Submitting feedback:', feedbackData);
+      const newFeedback = await createFeedback(feedbackData);
+      console.log('Feedback created:', newFeedback);
+      
+      // Refresh feedbacks list
+      await fetchFeedbacks();
+      
+      // Clear form
       setUserRating(0);
       setUserReview('');
+      alert('Đánh giá đã được gửi thành công!');
+      
     } catch (err) {
+      console.error('Error submitting feedback:', err);
       alert('Có lỗi khi gửi đánh giá: ' + err.message);
+    } finally {
+      setSubmittingFeedback(false);
     }
   };
 
+  // Cập nhật hàm submit comment để sử dụng API
   const handleSubmitComment = async () => {
     if (userComment.trim() === '') {
       alert('Vui lòng nhập bình luận');
@@ -243,15 +333,45 @@ export default function ApartmentDetail({ apartmentId = 1 }) {
     }
 
     try {
-      setComments(prev => [...prev, {
-        id: Date.now(),
-        content: userComment,
-        author: 'Bạn',
-        createdAt: new Date().toLocaleString()
-      }]);
+      setSubmittingComment(true);
+      
+      const commentData = {
+        apartmentId: apartmentId,
+        content: userComment.trim()
+      };
+
+      console.log('Submitting comment:', commentData);
+      const newComment = await createComment(commentData);
+      console.log('Comment created:', newComment);
+      
+      // Refresh comments list
+      await fetchComments();
+      
+      // Clear form
       setUserComment('');
+      alert('Bình luận đã được gửi thành công!');
+      
     } catch (err) {
+      console.error('Error submitting comment:', err);
       alert('Có lỗi khi gửi bình luận: ' + err.message);
+    } finally {
+      setSubmittingComment(false);
+    }
+  };
+
+  // Hàm xóa comment
+  const handleDeleteComment = async (commentId) => {
+    if (!window.confirm('Bạn có chắc chắn muốn xóa bình luận này?')) {
+      return;
+    }
+
+    try {
+      await deleteComment(commentId);
+      await fetchComments(); // Refresh comments list
+      alert('Bình luận đã được xóa!');
+    } catch (err) {
+      console.error('Error deleting comment:', err);
+      alert('Có lỗi khi xóa bình luận: ' + err.message);
     }
   };
 
@@ -368,108 +488,229 @@ export default function ApartmentDetail({ apartmentId = 1 }) {
 
                 <TabsContent value="feedback">
                   <div className="space-y-4">
-                    {/* Form đánh giá */}
-                    <div className="bg-gray-50 rounded-xl p-4 mb-4">
-                      <p className="font-semibold mb-2 text-gray-700">Đánh giá căn hộ này</p>
-                      <div className="flex items-center mb-2">
-                        {[1, 2, 3, 4, 5].map((star) => (
-                          <button
-                            key={star}
-                            type="button"
-                            className="focus:outline-none"
-                            onClick={() => setUserRating(star)}
-                          >
-                            <Star className={`w-6 h-6 ${userRating >= star ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`} />
-                          </button>
-                        ))}
+                    {/* Hiển thị rating trung bình */}
+                    {averageRating > 0 && (
+                      <div className="bg-blue-50 rounded-xl p-4 mb-4">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="font-semibold text-gray-900">Đánh giá trung bình</p>
+                            <div className="flex items-center mt-1">
+                              <span className="text-2xl font-bold text-yellow-500 mr-2">
+                                {averageRating.toFixed(1)}
+                              </span>
+                              <div className="flex">
+                                {[1, 2, 3, 4, 5].map((star) => (
+                                  <Star 
+                                    key={star} 
+                                    className={`w-5 h-5 ${
+                                      star <= Math.round(averageRating) 
+                                        ? 'fill-yellow-400 text-yellow-400' 
+                                        : 'text-gray-300'
+                                    }`} 
+                                  />
+                                ))}
+                              </div>
+                              <span className="text-sm text-gray-600 ml-2">
+                                ({feedbacks.length} đánh giá)
+                              </span>
+                            </div>
+                          </div>
+                        </div>
                       </div>
-                      <textarea
-                        className="w-full border rounded-lg px-3 py-2 mb-2 focus:ring-2 focus:ring-blue-400"
-                        rows={3}
-                        placeholder="Chia sẻ cảm nhận của bạn về căn hộ..."
-                        value={userReview}
-                        onChange={e => setUserReview(e.target.value)}
-                      />
-                      <Button onClick={handleSubmitReview}>Gửi đánh giá</Button>
-                    </div>
+                    )}
+
+                    {/* Form đánh giá - cập nhật */}
+                    {userInfo && (
+                      <div className="bg-gray-50 rounded-xl p-4 mb-4">
+                        <p className="font-semibold mb-2 text-gray-700">Đánh giá căn hộ này</p>
+                        <p className="text-sm text-gray-600 mb-3">
+                          * Chỉ những người đã thuê căn hộ mới có thể đánh giá
+                        </p>
+                        <div className="flex items-center mb-2">
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <button
+                              key={star}
+                              type="button"
+                              className="focus:outline-none disabled:opacity-50"
+                              onClick={() => setUserRating(star)}
+                              disabled={submittingFeedback}
+                            >
+                              <Star className={`w-6 h-6 ${userRating >= star ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`} />
+                            </button>
+                          ))}
+                        </div>
+                        <textarea
+                          className="w-full border rounded-lg px-3 py-2 mb-2 focus:ring-2 focus:ring-blue-400 resize-none"
+                          rows={3}
+                          placeholder="Chia sẻ cảm nhận của bạn về căn hộ..."
+                          value={userReview}
+                          onChange={e => setUserReview(e.target.value)}
+                          disabled={submittingFeedback}
+                          maxLength={1000}
+                        />
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm text-gray-500">
+                            {userReview.length}/1000 ký tự
+                          </span>
+                          <Button 
+                            onClick={handleSubmitReview}
+                            disabled={submittingFeedback || userRating === 0}
+                          >
+                            {submittingFeedback ? 'Đang gửi...' : 'Gửi đánh giá'}
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+
+                    {!userInfo && (
+                      <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 mb-4">
+                        <p className="text-yellow-800">
+                          Vui lòng <a href="/login" className="text-blue-600 hover:underline">đăng nhập</a> để đánh giá.
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Loading feedbacks */}
+                    {loadingFeedbacks && (
+                      <div className="text-center py-4">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                        <p className="text-gray-600 mt-2">Đang tải đánh giá...</p>
+                      </div>
+                    )}
 
                     {/* Danh sách đánh giá từ API */}
-                    {apartment.reviews && apartment.reviews.length > 0 ? (
-                      apartment.reviews.map((review) => (
-                        <Card key={review.id} className="hover:shadow-lg transition-shadow duration-200">
-                          <CardContent className="p-6">
-                            <div className="flex items-center gap-4 mb-4">
-                              <div>
-                                <p className="font-semibold text-gray-900">{review.author || 'Người thuê'}</p>
-                                <div className="flex text-yellow-500 mt-1">
-                                  {[...Array(5)].map((_, i) => (
-                                    <Star key={i} className={`w-4 h-4 ${i < (review.rating || 5) ? 'fill-yellow-500' : 'text-gray-300'}`} />
-                                  ))}
-                                </div>
-                              </div>
-                            </div>
-                            <p className="text-gray-700 leading-relaxed">
-                              {review.comment || review.content || 'Căn hộ tốt, đáng thuê.'}
-                            </p>
-                            {review.createdAt && (
-                              <p className="text-sm text-gray-500 mt-2">
-                                {new Date(review.createdAt).toLocaleDateString('vi-VN')}
-                              </p>
-                            )}
-                          </CardContent>
-                        </Card>
-                      ))
-                    ) : (
-                      // Mock reviews nếu API chưa có
-                      [1, 2].map((id) => (
-                        <Card key={id} className="hover:shadow-lg transition-shadow duration-200">
-                          <CardContent className="p-6">
-                            <div className="flex items-center gap-4 mb-4">
-                              <div>
-                                <p className="font-semibold text-gray-900">Người thuê {id}</p>
-                                <div className="flex text-yellow-500 mt-1">
-                                  {[...Array(5)].map((_, i) => (
-                                    <Star key={i} className="w-4 h-4 fill-yellow-500" />
-                                  ))}
-                                </div>
-                              </div>
-                            </div>
-                            <p className="text-gray-700 leading-relaxed">
-                              Căn hộ sạch sẽ, an ninh tốt. Chủ nhà nhiệt tình, hỗ trợ nhanh chóng. Tiện ích đầy đủ, vị trí thuận lợi.
-                            </p>
-                          </CardContent>
-                        </Card>
-                      ))
+                    {!loadingFeedbacks && (
+                      <>
+                        {feedbacks.length === 0 ? (
+                          <div className="text-center text-gray-500 py-8">
+                            <div className="text-4xl mb-2">⭐</div>
+                            <p>Chưa có đánh giá nào</p>
+                            <p className="text-sm">Hãy là người đầu tiên đánh giá căn hộ này!</p>
+                          </div>
+                        ) : (
+                          <div className="space-y-4">
+                            {feedbacks.map((feedback) => (
+                              <Card key={feedback.feedbackId} className="hover:shadow-lg transition-shadow duration-200">
+                                <CardContent className="p-6">
+                                  <div className="flex items-center gap-4 mb-4">
+                                    <div>
+                                      <p className="font-semibold text-gray-900">
+                                        {feedback.fullName || 'Người thuê'}
+                                      </p>
+                                      <div className="flex text-yellow-500 mt-1">
+                                        {[...Array(5)].map((_, i) => (
+                                          <Star key={i} className={`w-4 h-4 ${i < feedback.rating ? 'fill-yellow-500' : 'text-gray-300'}`} />
+                                        ))}
+                                      </div>
+                                    </div>
+                                  </div>
+                                  <p className="text-gray-700 leading-relaxed mb-3">
+                                    {feedback.comment}
+                                  </p>
+                                  <p className="text-sm text-gray-500">
+                                    {new Date(feedback.createdAt).toLocaleDateString('vi-VN', {
+                                      year: 'numeric',
+                                      month: 'long',
+                                      day: 'numeric'
+                                    })}
+                                  </p>
+                                </CardContent>
+                              </Card>
+                            ))}
+                          </div>
+                        )}
+                      </>
                     )}
                   </div>
                 </TabsContent>
 
                 <TabsContent value="comments">
                   <div className="space-y-4">
-                    {/* Form bình luận */}
-                    <div className="bg-gray-50 rounded-xl p-4 mb-4">
-                      <p className="font-semibold mb-2 text-gray-700">Bình luận về căn hộ</p>
-                      <textarea
-                        className="w-full border rounded-lg px-3 py-2 mb-2 focus:ring-2 focus:ring-blue-400"
-                        rows={2}
-                        placeholder="Nhập bình luận của bạn..."
-                        value={userComment}
-                        onChange={e => setUserComment(e.target.value)}
-                      />
-                      <Button onClick={handleSubmitComment}>Gửi bình luận</Button>
-                    </div>
+                    {/* Form bình luận - cập nhật */}
+                    {userInfo && (
+                      <div className="bg-gray-50 rounded-xl p-4 mb-4">
+                        <p className="font-semibold mb-2 text-gray-700">Bình luận về căn hộ</p>
+                        <textarea
+                          className="w-full border rounded-lg px-3 py-2 mb-2 focus:ring-2 focus:ring-blue-400 resize-none"
+                          rows={3}
+                          placeholder="Nhập bình luận của bạn..."
+                          value={userComment}
+                          onChange={e => setUserComment(e.target.value)}
+                          disabled={submittingComment}
+                          maxLength={500}
+                        />
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm text-gray-500">
+                            {userComment.length}/500 ký tự
+                          </span>
+                          <Button 
+                            onClick={handleSubmitComment}
+                            disabled={submittingComment || userComment.trim() === ''}
+                          >
+                            {submittingComment ? 'Đang gửi...' : 'Gửi bình luận'}
+                          </Button>
+                        </div>
+                      </div>
+                    )}
 
-                    {/* Danh sách bình luận */}
-                    {comments.length === 0 ? (
-                      <div className="text-center text-gray-500">Chưa có bình luận nào</div>
-                    ) : (
-                      comments.map((comment) => (
-                        <Card key={comment.id} className="p-4">
-                          <p className="font-semibold text-gray-900 mb-1">{comment.author}</p>
-                          <p className="text-gray-700">{comment.content}</p>
-                          <p className="text-sm text-gray-500 mt-1">{comment.createdAt}</p>
-                        </Card>
-                      ))
+                    {/* Loading comments */}
+                    {loadingComments && (
+                      <div className="text-center py-4">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                        <p className="text-gray-600 mt-2">Đang tải bình luận...</p>
+                      </div>
+                    )}
+
+                    {/* Danh sách bình luận từ API */}
+                    {!loadingComments && (
+                      <>
+                        {comments.length === 0 ? (
+                          <div className="text-center text-gray-500 py-8">
+                            <div className="text-4xl mb-2">💬</div>
+                            <p>Chưa có bình luận nào</p>
+                            <p className="text-sm">Hãy là người đầu tiên bình luận về căn hộ này!</p>
+                          </div>
+                        ) : (
+                          <div className="space-y-3">
+                            {comments.map((comment) => (
+                              <Card key={comment.commentId} className="p-4 hover:shadow-md transition-shadow duration-200">
+                                <div className="flex justify-between items-start">
+                                  <div className="flex-1">
+                                    <div className="flex items-center mb-2">
+                                      <div>
+                                        <p className="font-semibold text-gray-900">
+                                          {comment.fullName || 'Người dùng'}
+                                        </p>
+                                        <p className="text-sm text-gray-500">
+                                          {new Date(comment.createdAt).toLocaleDateString('vi-VN', {
+                                            year: 'numeric',
+                                            month: 'long',
+                                            day: 'numeric'
+                                          })}
+                                        </p>
+                                      </div>
+                                    </div>
+                                    <p className="text-gray-700 leading-relaxed">
+                                      {comment.content}
+                                    </p>
+                                  </div>
+                                  
+                                  {/* Nút xóa chỉ hiện với comment của user hiện tại */}
+                                  {currentUserId && comment.userId === currentUserId && (
+                                    <Button 
+                                      variant="danger"
+                                      onClick={() => handleDeleteComment(comment.commentId)}
+                                      className="ml-2"
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                    </Button>
+                                  )}
+                                </div>
+                              </Card>
+                            ))}
+                          </div>
+                        )}
+                      </>
                     )}
                   </div>
                 </TabsContent>

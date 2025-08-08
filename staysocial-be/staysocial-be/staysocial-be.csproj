@@ -41,6 +41,8 @@
     <None Remove="DTOs\Booking\" />
     <None Remove="DTOs\DashboardStatisticsDto\" />
     <None Remove="DTOs\LandlordRequest\" />
+    <None Remove="DTOs\Feedback\" />
+    <None Remove="DTOs\Comment\" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Models\" />
@@ -59,5 +61,7 @@
     <Folder Include="DTOs\Booking\" />
     <Folder Include="DTOs\DashboardStatisticsDto\" />
     <Folder Include="DTOs\LandlordRequest\" />
+    <Folder Include="DTOs\Feedback\" />
+    <Folder Include="DTOs\Comment\" />
   </ItemGroup>
 </Project>

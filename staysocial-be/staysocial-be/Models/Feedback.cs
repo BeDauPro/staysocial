@@ -14,7 +14,7 @@ namespace staysocial_be.Models
         public int OrderId { get; set; }
         public Order Order { get; set; }
 
-        public int Rating { get; set; } // 1–5 stars
+        public int Rating { get; set; } 
         public string Comment { get; set; }
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
