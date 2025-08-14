@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using staysocial_be.Data;
 using staysocial_be.DTOs.Order;
@@ -21,36 +23,36 @@ namespace staysocial_be.Services
             _revenueService = revenueService;
         }
 
-        public async Task<string> CreateOrderAsync(CreateOrderDto dto, string returnUrl)
+        public async Task<string> CreateOrderAsync(CreateOrderDto dto, string returnUrl, string ipAddress)
         {
-            var booking = await _db.Bookings.FindAsync(dto.BookingId);
-            if (booking == null) throw new Exception("Booking not found");
+            if (dto == null) throw new ArgumentException("Invalid request body");
+            if (dto.Amount <= 0) throw new ArgumentException("Amount must be greater than 0");
 
+            // ...existing code...
             var order = new Order
             {
-                BookingId = dto.BookingId,
+                ApartmentId = dto.ApartmentId, 
                 Amount = dto.Amount,
                 OrderType = dto.OrderType,
                 ForYear = dto.ForYear,
                 ForMonth = dto.ForMonth,
-                Description = dto.Description,
+                Description = string.IsNullOrWhiteSpace(dto.Description)
+                    ? $"Thanh toán trực tiếp cho căn hộ {dto.ApartmentName}"
+                    : dto.Description,
                 Status = OrderStatus.Pending,
                 CreatedAt = DateTime.UtcNow
             };
-
+            // ...existing code...
             _db.Orders.Add(order);
             await _db.SaveChangesAsync();
 
-            // tạo paymentUrl
-            var paymentUrl = _vnPay.CreatePaymentUrl(order.OrderId, order.Amount, order.Description ?? $"Order #{order.OrderId}", returnUrl);
-            return paymentUrl;
+            // Tạo link VNPay cho orderId vừa tạo
+            return _vnPay.CreatePaymentUrl(order.OrderId, order.Amount, order.Description, returnUrl, ipAddress);
         }
 
         public async Task<bool> ConfirmPaymentAsync(int orderId, bool success, IDictionary<string, string> vnpData = null)
         {
-            var order = await _db.Orders
-                .FirstOrDefaultAsync(o => o.OrderId == orderId);
-
+            var order = await _db.Orders.FirstOrDefaultAsync(o => o.OrderId == orderId);
             if (order == null) return false;
 
             if (!success)
@@ -60,32 +62,22 @@ namespace staysocial_be.Services
                 return false;
             }
 
+            if (order.Status == OrderStatus.Paid) return true;
+
             order.Status = OrderStatus.Paid;
             order.PaymentDate = DateTime.UtcNow;
             await _db.SaveChangesAsync();
 
-            // Nếu là thanh toán tiền thuê tháng => cộng doanh thu ngay
-            if (order.OrderType == OrderType.MonthlyRent)
+            // Ghi nhận doanh thu
+            await _revenueService.AddRevenueAsync(new Revenue
             {
-                await _revenueService.AddRevenueAsync(new Revenue
-                {
-                    Amount = order.Amount,
-                    RecognizedAt = DateTime.UtcNow,
-                    Source = "MonthlyRent",
-                    OrderId = order.OrderId,
-                    BookingId = order.BookingId
-                });
-            }
-            else if (order.OrderType == OrderType.Deposit)
-            {
-                // Đối với Deposit: không cộng doanh thu ngay.
-                // Chúng ta chỉ lưu trạng thái Order Paid, và deposit sẽ được công nhận khi đến tháng bắt đầu thuê
-                // (DepositRecognitionService sẽ xử lý).
-            }
+                Amount = order.Amount,
+                RecognizedAt = DateTime.UtcNow,
+                Source = order.OrderType == OrderType.MonthlyRent ? "MonthlyRent" : "Deposit",
+                OrderId = order.OrderId
+            });
 
             return true;
         }
     }
-
 }
-

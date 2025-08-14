@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 
 // Mock Pagination component
 const Pagination = ({ currentPage, totalPages, onPageChange }) => {
@@ -46,59 +46,180 @@ const Pagination = ({ currentPage, totalPages, onPageChange }) => {
   );
 };
 
-const bookingHistory = [
-  {
-    id: 1,
-    type: "Đã cọc",
-    apartment: "Sunrise City View",
-    address: "Quận 7, TP.HCM",
-    amount: 2000000,
-    paidAt: "2025-06-25 14:30",
-  },
-  {
-    id: 2,
-    type: "Đã thuê",
-    apartment: "Vinhomes Central Park",
-    address: "Bình Thạnh, TP.HCM",
-    amount: 10000000,
-    paidAt: "2025-06-28 10:15",
-  },
-  {
-    id: 3,
-    type: "Đã cọc",
-    apartment: "The Manor",
-    address: "Thủ Đức, TP.HCM",
-    amount: 1500000,
-    paidAt: "2025-07-01 16:45",
-  },
-];
+// API service functions
+const API_BASE_URL = 'http://localhost:5283/api';
 
-const uniqueTypes = ["Tất cả", ...Array.from(new Set(bookingHistory.map(i => i.type)))];
-const uniqueAddresses = ["Tất cả", ...Array.from(new Set(bookingHistory.map(i => i.address)))];
+const createAxiosInstance = () => {
+  const instance = {
+    get: async (url) => {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_BASE_URL}${url}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': token ? `Bearer ${token}` : '',
+        },
+        credentials: 'include',
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      return { data: await response.json() };
+    }
+  };
+  return instance;
+};
+
+const axiosInstance = createAxiosInstance();
+
+// API functions
+const fetchAllBookings = async () => {
+  try {
+    const response = await axiosInstance.get('/booking');
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching bookings:', error);
+    throw error;
+  }
+};
+
+// Helper functions
+const ORDER_TYPES = {
+  RENT: 0,
+  DEPOSIT: 1,
+  SERVICE_FEE: 2,
+  PENALTY: 3,
+};
+
+const getOrderTypeName = (type) => {
+  const names = {
+    [ORDER_TYPES.RENT]: 'Đã thuê',
+    [ORDER_TYPES.DEPOSIT]: 'Đã cọc',
+    [ORDER_TYPES.SERVICE_FEE]: 'Phí dịch vụ',
+    [ORDER_TYPES.PENALTY]: 'Phí phạt',
+  };
+  return names[type] || 'Không xác định';
+};
+
+const formatCurrency = (amount) => {
+  if (!amount && amount !== 0) return '0₫';
+  return new Intl.NumberFormat('vi-VN').format(amount) + '₫';
+};
+
+const formatDateTime = (dateString) => {
+  if (!dateString) return 'N/A';
+  try {
+    const date = new Date(dateString);
+    return date.toLocaleString('vi-VN', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  } catch (error) {
+    return dateString;
+  }
+};
+
+// Transform booking data to transaction format
+const transformBookingToTransaction = (booking) => {
+  // Xác định loại giao dịch dựa trên dữ liệu booking
+  let type = 'Đã cọc'; // Default
+  let amount = 0;
+  let paidAt = booking.createdDate || booking.updatedDate || new Date().toISOString();
+
+  // Nếu booking có order, sử dụng thông tin từ order
+  if (booking.orders && booking.orders.length > 0) {
+    const latestOrder = booking.orders.sort((a, b) => new Date(b.createdDate) - new Date(a.createdDate))[0];
+    type = getOrderTypeName(latestOrder.orderType);
+    amount = latestOrder.amount;
+    paidAt = latestOrder.createdDate;
+  } else {
+    // Fallback: sử dụng thông tin từ booking
+    if (booking.monthlyRent) {
+      type = 'Đã thuê';
+      amount = booking.monthlyRent;
+    } else if (booking.depositAmount) {
+      type = 'Đã cọc';
+      amount = booking.depositAmount;
+    }
+  }
+
+  return {
+    id: booking.id,
+    type: type,
+    apartment: booking.apartmentName || 'N/A',
+    address: booking.apartmentAddress || 'N/A',
+    amount: amount,
+    paidAt: formatDateTime(paidAt),
+    rawDate: new Date(paidAt),
+    originalBooking: booking,
+  };
+};
 
 export default function BookingHistory() {
+  const [transactions, setTransactions] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [type, setType] = useState("Tất cả");
   const [address, setAddress] = useState("Tất cả");
   const [sort, setSort] = useState("desc");
   const [currentPage, setCurrentPage] = useState(1);
-  const totalPages = Math.ceil(bookingHistory.length / 10);
-  
-  const handlePageChange = (page) => {
-    if (page >= 1 && page <= totalPages) {
-      setCurrentPage(page);
-    }
-  };
+  const itemsPerPage = 10;
 
-  let filtered = bookingHistory.filter(item =>
+  // Fetch data from API
+  useEffect(() => {
+    const loadTransactions = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        
+        const bookings = await fetchAllBookings();
+        
+        // Transform bookings to transaction format
+        const transformedTransactions = bookings
+          .map(transformBookingToTransaction)
+          .filter(transaction => transaction.amount > 0); // Only show transactions with amounts
+        
+        setTransactions(transformedTransactions);
+      } catch (err) {
+        console.error('Error loading transactions:', err);
+        setError('Không thể tải dữ liệu giao dịch. Vui lòng thử lại sau.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadTransactions();
+  }, []);
+
+  // Get unique values for filters
+  const uniqueTypes = ["Tất cả", ...Array.from(new Set(transactions.map(i => i.type)))];
+  const uniqueAddresses = ["Tất cả", ...Array.from(new Set(transactions.map(i => i.address)))];
+
+  // Filter and sort transactions
+  let filtered = transactions.filter(item =>
     (type === "Tất cả" || item.type === type) &&
     (address === "Tất cả" || item.address === address)
   );
 
   filtered = filtered.sort((a, b) => {
-    const dateA = new Date(a.paidAt);
-    const dateB = new Date(b.paidAt);
-    return sort === "desc" ? dateB - dateA : dateA - dateB;
+    return sort === "desc" ? b.rawDate - a.rawDate : a.rawDate - b.rawDate;
   });
+
+  // Pagination
+  const totalPages = Math.ceil(filtered.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginatedTransactions = filtered.slice(startIndex, startIndex + itemsPerPage);
+
+  const handlePageChange = (page) => {
+    if (page >= 1 && page <= totalPages) {
+      setCurrentPage(page);
+    }
+  };
 
   const getStatusIcon = (type) => {
     if (type === "Đã thuê") {
@@ -115,6 +236,60 @@ export default function BookingHistory() {
     );
   };
 
+  const getStatusColor = (type) => {
+    switch (type) {
+      case "Đã thuê":
+        return "bg-green-100 text-green-800";
+      case "Đã cọc":
+        return "bg-yellow-100 text-yellow-800";
+      case "Phí dịch vụ":
+        return "bg-blue-100 text-blue-800";
+      case "Phí phạt":
+        return "bg-red-100 text-red-800";
+      default:
+        return "bg-gray-100 text-gray-800";
+    }
+  };
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 p-4">
+        <div className="max-w-6xl mx-auto">
+          <div className="flex items-center justify-center py-16">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+              <p className="text-gray-600">Đang tải dữ liệu...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 p-4">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center py-16">
+            <svg className="w-16 h-16 text-red-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <h3 className="text-xl font-semibold text-gray-800 mb-2">Lỗi tải dữ liệu</h3>
+            <p className="text-gray-600 mb-4">{error}</p>
+            <button
+              onClick={() => window.location.reload()}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors"
+            >
+              Thử lại
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 p-4">
       <div className="max-w-6xl mx-auto space-y-8">
@@ -124,6 +299,9 @@ export default function BookingHistory() {
             Lịch Sử Giao Dịch
           </h1>
           <p className="text-gray-600">Theo dõi các giao dịch cọc và thuê căn hộ</p>
+          <p className="text-sm text-gray-500 mt-2">
+            Tổng {filtered.length} giao dịch
+          </p>
         </div>
 
         {/* Filters */}
@@ -140,7 +318,10 @@ export default function BookingHistory() {
               <div className="relative">
                 <select
                   value={type}
-                  onChange={e => setType(e.target.value)}
+                  onChange={e => {
+                    setType(e.target.value);
+                    setCurrentPage(1); // Reset to first page when filter changes
+                  }}
                   className="appearance-none bg-white border border-gray-300 rounded-xl px-4 py-2 pr-8 text-sm font-medium text-gray-700 hover:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
                 >
                   {uniqueTypes.map(t => (
@@ -155,7 +336,10 @@ export default function BookingHistory() {
               <div className="relative">
                 <select
                   value={address}
-                  onChange={e => setAddress(e.target.value)}
+                  onChange={e => {
+                    setAddress(e.target.value);
+                    setCurrentPage(1);
+                  }}
                   className="appearance-none bg-white border border-gray-300 rounded-xl px-4 py-2 pr-8 text-sm font-medium text-gray-700 hover:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
                 >
                   {uniqueAddresses.map(a => (
@@ -209,17 +393,11 @@ export default function BookingHistory() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">
-                    {filtered.map((item, index) => (
+                    {paginatedTransactions.map((item, index) => (
                       <tr key={item.id} className="hover:bg-gray-50/50 transition-all duration-200">
                         <td className="px-6 py-4">
                           <div className="flex items-center">
-                            <span
-                              className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
-                                item.type === "Đã thuê"
-                                  ? "bg-green-100 text-green-800"
-                                  : "bg-yellow-100 text-yellow-800"
-                              }`}
-                            >
+                            <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(item.type)}`}>
                               {getStatusIcon(item.type)}
                               {item.type}
                             </span>
@@ -239,7 +417,7 @@ export default function BookingHistory() {
                         </td>
                         <td className="px-6 py-4">
                           <div className="text-lg font-bold text-blue-600">
-                            {item.amount.toLocaleString()}₫
+                            {formatCurrency(item.amount)}
                           </div>
                         </td>
                         <td className="px-6 py-4">
@@ -253,21 +431,15 @@ export default function BookingHistory() {
 
               {/* Mobile Card View */}
               <div className="md:hidden space-y-4 p-4">
-                {filtered.map((item, index) => (
+                {paginatedTransactions.map((item, index) => (
                   <div key={item.id} className="bg-gradient-to-r from-white to-gray-50 rounded-2xl p-4 shadow-md border border-gray-200">
                     <div className="flex items-center justify-between mb-3">
-                      <span
-                        className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
-                          item.type === "Đã thuê"
-                            ? "bg-green-100 text-green-800"
-                            : "bg-yellow-100 text-yellow-800"
-                        }`}
-                      >
+                      <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(item.type)}`}>
                         {getStatusIcon(item.type)}
                         {item.type}
                       </span>
                       <div className="text-lg font-bold text-blue-600">
-                        {item.amount.toLocaleString()}₫
+                        {formatCurrency(item.amount)}
                       </div>
                     </div>
                     <div className="space-y-2">
@@ -294,7 +466,7 @@ export default function BookingHistory() {
         </div>
 
         {/* Pagination */}
-        {filtered.length > 0 && (
+        {filtered.length > 0 && totalPages > 1 && (
           <Pagination
             currentPage={currentPage}
             totalPages={totalPages}

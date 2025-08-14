@@ -1,10 +1,10 @@
 import { getApartmentById } from '../../services/apartmentApi';
 import { getAllPhotos, getPhotoById } from '../../services/photoApi';
-import { 
-  createComment, 
-  getCommentsByApartmentId, 
-  getMyComments, 
-  deleteComment 
+import {
+  createComment,
+  getCommentsByApartmentId,
+  getMyComments,
+  deleteComment
 } from '../../services/commentApi';
 import {
   createFeedback,
@@ -15,7 +15,7 @@ import {
 // Import reaction API functions
 import { toggleReaction, getReactionCount } from '../../services/reactionApi';
 import React, { useState, useEffect } from "react";
-import { Star, Heart, ThumbsUp, ThumbsDown, MapPin, Wifi, Car, Shield, Waves, Dumbbell, Camera, Trash2, Edit } from "lucide-react";
+import { Star, Heart, ThumbsUp, ThumbsDown, MapPin, Camera, Trash2 } from "lucide-react";
 import { useSelector } from 'react-redux';
 
 // Define BASE_URL for photo URLs
@@ -106,7 +106,7 @@ export default function ApartmentDetail({ apartmentId = 1 }) {
   const [photos, setPhotos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  
+
   // Redux state
   const { userInfo } = useSelector(state => state.auth);
   const role = userInfo?.role;
@@ -116,7 +116,7 @@ export default function ApartmentDetail({ apartmentId = 1 }) {
   const [selectedImage, setSelectedImage] = useState(0);
   const [userRating, setUserRating] = useState(0);
   const [userReview, setUserReview] = useState('');
-  
+
   // State cho reactions - UPDATED
   const [reactions, setReactions] = useState({
     likeCount: 0,
@@ -124,7 +124,7 @@ export default function ApartmentDetail({ apartmentId = 1 }) {
     userReaction: null // null | 'like' | 'dislike'
   });
   const [reactionLoading, setReactionLoading] = useState(false);
-  
+
   // State cho comments
   const [userComment, setUserComment] = useState('');
   const [comments, setComments] = useState([]);
@@ -146,88 +146,88 @@ export default function ApartmentDetail({ apartmentId = 1 }) {
   }, [apartmentId]);
 
   // NEW: Fetch reaction data from API
- // NEW: Fetch reaction data from API
-const fetchReactionData = async () => {
-  try {
-    const reactionData = await getReactionCount(apartmentId);
-    console.log('Reaction data received:', reactionData);
+  // NEW: Fetch reaction data from API
+  const fetchReactionData = async () => {
+    try {
+      const reactionData = await getReactionCount(apartmentId);
+      console.log('Reaction data received:', reactionData);
 
-    setReactions({
-      likeCount: reactionData.likes ?? 0,
-      dislikeCount: reactionData.dislikes ?? 0,
-      userReaction: reactions.userReaction ?? reactionData.userReaction ?? null
-    });
-  } catch (err) {
-    console.error('Error fetching reaction data:', err);
-    // Set default values on error
-    setReactions({
-      likeCount: 0,
-      dislikeCount: 0,
-      userReaction: null
-    });
-  }
-};
+      setReactions({
+        likeCount: reactionData.likes ?? 0,
+        dislikeCount: reactionData.dislikes ?? 0,
+        userReaction: reactions.userReaction ?? reactionData.userReaction ?? null
+      });
+    } catch (err) {
+      console.error('Error fetching reaction data:', err);
+      // Set default values on error
+      setReactions({
+        likeCount: 0,
+        dislikeCount: 0,
+        userReaction: null
+      });
+    }
+  };
 
 
   // NEW: Handle reaction toggle (like/dislike)
-const handleReactionToggle = async (reactionType) => {
-  if (!userInfo) {
-    alert('Vui lòng đăng nhập để thực hiện tương tác');
-    return;
-  }
+  const handleReactionToggle = async (reactionType) => {
+    if (!userInfo) {
+      alert('Vui lòng đăng nhập để thực hiện tương tác');
+      return;
+    }
 
-  if (reactionLoading) return;
+    if (reactionLoading) return;
 
-  try {
-    setReactionLoading(true);
+    try {
+      setReactionLoading(true);
 
-    // Determine optimistic next state:
-    // If user already did same reaction => clicking again should remove it => set userReaction -> null
-    const current = reactions.userReaction; // 'like' | 'dislike' | null
-    const willRemove = current === reactionType;
-    const newUserReaction = willRemove ? null : reactionType;
+      // Determine optimistic next state:
+      // If user already did same reaction => clicking again should remove it => set userReaction -> null
+      const current = reactions.userReaction; // 'like' | 'dislike' | null
+      const willRemove = current === reactionType;
+      const newUserReaction = willRemove ? null : reactionType;
 
-    // Optimistically update UI counts:
-    setReactions(prev => {
-      let likeCount = prev.likeCount;
-      let dislikeCount = prev.dislikeCount;
+      // Optimistically update UI counts:
+      setReactions(prev => {
+        let likeCount = prev.likeCount;
+        let dislikeCount = prev.dislikeCount;
 
-      // remove previous reaction if exists
-      if (prev.userReaction === 'like') likeCount = Math.max(0, likeCount - 1);
-      if (prev.userReaction === 'dislike') dislikeCount = Math.max(0, dislikeCount - 1);
+        // remove previous reaction if exists
+        if (prev.userReaction === 'like') likeCount = Math.max(0, likeCount - 1);
+        if (prev.userReaction === 'dislike') dislikeCount = Math.max(0, dislikeCount - 1);
 
-      // add new reaction if not removing
-      if (!willRemove) {
-        if (reactionType === 'like') likeCount = likeCount + 1;
-        if (reactionType === 'dislike') dislikeCount = dislikeCount + 1;
-      }
+        // add new reaction if not removing
+        if (!willRemove) {
+          if (reactionType === 'like') likeCount = likeCount + 1;
+          if (reactionType === 'dislike') dislikeCount = dislikeCount + 1;
+        }
 
-      return {
-        likeCount,
-        dislikeCount,
-        userReaction: newUserReaction
+        return {
+          likeCount,
+          dislikeCount,
+          userReaction: newUserReaction
+        };
+      });
+
+      // Send to backend (it will toggle server-side)
+      const payload = {
+        apartmentId: apartmentId,
+        reactionType // 'like' or 'dislike' - reactionApi maps this to enum
       };
-    });
+      console.log('Sending reaction toggle:', payload);
+      await toggleReaction(payload);
 
-    // Send to backend (it will toggle server-side)
-    const payload = {
-      apartmentId: apartmentId,
-      reactionType // 'like' or 'dislike' - reactionApi maps this to enum
-    };
-    console.log('Sending reaction toggle:', payload);
-    await toggleReaction(payload);
-
-    // Re-fetch authoritative counts to avoid drift
-    await fetchReactionData();
-  } catch (err) {
-    console.error('Error toggling reaction:', err);
-    alert('Có lỗi khi thực hiện tương tác: ' + (err.message || err));
-    // on error, re-fetch to revert optimistic UI
-    try { await fetchReactionData(); } catch (e) { /* ignore */ }
-  } finally {
-    setReactionLoading(false);
-  }
-};
+      // Re-fetch authoritative counts to avoid drift
+      await fetchReactionData();
+    } catch (err) {
+      console.error('Error toggling reaction:', err);
+      alert('Có lỗi khi thực hiện tương tác: ' + (err.message || err));
+      // on error, re-fetch to revert optimistic UI
+      try { await fetchReactionData(); } catch (e) { /* ignore */ }
+    } finally {
+      setReactionLoading(false);
+    }
+  };
 
   const fetchApartmentData = async () => {
     try {
@@ -369,7 +369,7 @@ const handleReactionToggle = async (reactionType) => {
 
     try {
       setSubmittingFeedback(true);
-      
+
       const feedbackData = {
         apartmentId: apartmentId,
         orderId: 1,
@@ -380,13 +380,13 @@ const handleReactionToggle = async (reactionType) => {
       console.log('Submitting feedback:', feedbackData);
       const newFeedback = await createFeedback(feedbackData);
       console.log('Feedback created:', newFeedback);
-      
+
       await fetchFeedbacks();
-      
+
       setUserRating(0);
       setUserReview('');
       alert('Đánh giá đã được gửi thành công!');
-      
+
     } catch (err) {
       console.error('Error submitting feedback:', err);
       alert('Có lỗi khi gửi đánh giá: ' + err.message);
@@ -403,7 +403,7 @@ const handleReactionToggle = async (reactionType) => {
 
     try {
       setSubmittingComment(true);
-      
+
       const commentData = {
         apartmentId: apartmentId,
         content: userComment.trim()
@@ -412,12 +412,12 @@ const handleReactionToggle = async (reactionType) => {
       console.log('Submitting comment:', commentData);
       const newComment = await createComment(commentData);
       console.log('Comment created:', newComment);
-      
+
       await fetchComments();
-      
+
       setUserComment('');
       alert('Bình luận đã được gửi thành công!');
-      
+
     } catch (err) {
       console.error('Error submitting comment:', err);
       alert('Có lỗi khi gửi bình luận: ' + err.message);
@@ -564,13 +564,12 @@ const handleReactionToggle = async (reactionType) => {
                               </span>
                               <div className="flex">
                                 {[1, 2, 3, 4, 5].map((star) => (
-                                  <Star 
-                                    key={star} 
-                                    className={`w-5 h-5 ${
-                                      star <= Math.round(averageRating) 
-                                        ? 'fill-yellow-400 text-yellow-400' 
+                                  <Star
+                                    key={star}
+                                    className={`w-5 h-5 ${star <= Math.round(averageRating)
+                                        ? 'fill-yellow-400 text-yellow-400'
                                         : 'text-gray-300'
-                                    }`} 
+                                      }`}
                                   />
                                 ))}
                               </div>
@@ -615,7 +614,7 @@ const handleReactionToggle = async (reactionType) => {
                           <span className="text-sm text-gray-500">
                             {userReview.length}/1000 ký tự
                           </span>
-                          <Button 
+                          <Button
                             onClick={handleSubmitReview}
                             disabled={submittingFeedback || userRating === 0}
                           >
@@ -703,7 +702,7 @@ const handleReactionToggle = async (reactionType) => {
                           <span className="text-sm text-gray-500">
                             {userComment.length}/500 ký tự
                           </span>
-                          <Button 
+                          <Button
                             onClick={handleSubmitComment}
                             disabled={submittingComment || userComment.trim() === ''}
                           >
@@ -752,9 +751,9 @@ const handleReactionToggle = async (reactionType) => {
                                       {comment.content}
                                     </p>
                                   </div>
-                                  
+
                                   {currentUserId && comment.userId === currentUserId && (
-                                    <Button 
+                                    <Button
                                       variant="danger"
                                       onClick={() => handleDeleteComment(comment.commentId)}
                                       className="ml-2"
@@ -813,18 +812,16 @@ const handleReactionToggle = async (reactionType) => {
                           variant="ghost"
                           onClick={() => handleReactionToggle('like')}
                           disabled={reactionLoading}
-                          className={`flex-1 relative ${
-                            reactions.userReaction === 'like' 
-                              ? 'bg-red-50 text-red-600 border-red-200' 
+                          className={`flex-1 relative ${reactions.userReaction === 'like'
+                              ? 'bg-red-50 text-red-600 border-red-200'
                               : 'hover:bg-red-50'
-                          }`}
+                            }`}
                         >
-                          <Heart 
-                            className={`w-5 h-5 mr-2 ${
-                              reactions.userReaction === 'like' 
-                                ? 'fill-red-500 text-red-500' 
+                          <Heart
+                            className={`w-5 h-5 mr-2 ${reactions.userReaction === 'like'
+                                ? 'fill-red-500 text-red-500'
                                 : 'text-gray-400'
-                            }`} 
+                              }`}
                           />
                           <span className="flex items-center">
                             {reactions.userReaction === 'like' ? 'Đã thích' : 'Thích'}
@@ -846,18 +843,16 @@ const handleReactionToggle = async (reactionType) => {
                           variant="ghost"
                           onClick={() => handleReactionToggle('dislike')}
                           disabled={reactionLoading}
-                          className={`flex-1 relative ${
-                            reactions.userReaction === 'dislike' 
-                              ? 'bg-gray-100 text-gray-700 border-gray-300' 
+                          className={`flex-1 relative ${reactions.userReaction === 'dislike'
+                              ? 'bg-gray-100 text-gray-700 border-gray-300'
                               : 'hover:bg-gray-100'
-                          }`}
+                            }`}
                         >
-                          <ThumbsDown 
-                            className={`w-5 h-5 mr-2 ${
-                              reactions.userReaction === 'dislike' 
-                                ? 'text-gray-600' 
+                          <ThumbsDown
+                            className={`w-5 h-5 mr-2 ${reactions.userReaction === 'dislike'
+                                ? 'text-gray-600'
                                 : 'text-gray-400'
-                            }`} 
+                              }`}
                           />
                           <span className="flex items-center">
                             {reactions.userReaction === 'dislike' ? 'Đã dislike' : 'Không thích'}
@@ -909,7 +904,7 @@ const handleReactionToggle = async (reactionType) => {
                     {/* Action Buttons */}
                     <div className="space-y-3">
                       <a
-                        href="/booking-form"
+                        href={`/booking-form/${apartment.apartmentId}`}
                         className="block w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white py-4 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 text-center"
                       >
                         <span className="flex items-center justify-center">
@@ -921,7 +916,7 @@ const handleReactionToggle = async (reactionType) => {
                       </a>
 
                       <a
-                        href="/checkoutpage"
+                        href={`/checkoutpage/${apartment.apartmentId}`}
                         className="block w-full bg-gradient-to-r from-green-600 to-green-700 text-white py-4 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 text-center"
                       >
                         <span className="flex items-center justify-center">

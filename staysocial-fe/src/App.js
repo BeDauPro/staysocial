@@ -51,11 +51,11 @@ function App() {
       <Route element={<PrivateRoute allowedRoles={["User"]} />}>
         <Route element={<UserLayout />}>
           <Route path="/apartments" element={<ProductsList />} />
-          <Route path="/booking-form" element={<BookingForm />} />
-          <Route path="/checkoutpage" element={<CheckoutPage />} />
+          <Route path="/booking-form/:apartmentId" element={<BookingForm />} />
+          <Route path="/checkoutpage/:id" element={<CheckoutPage />} />
           <Route path="/user-profile" element={<UserProfile />} />
           <Route path="/history" element={<History />} />
-          <Route path="/request-landlord" element={<LandlordRequestForm/>} />
+          <Route path="/request-landlord" element={<LandlordRequestForm />} />
         </Route>
       </Route>
 

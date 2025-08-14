@@ -1,9 +1,11 @@
 import { getApartmentById } from '../../services/apartmentApi'; // Import apartment API
 import { createBooking } from '../../services/bookingApi'; // Import booking API
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
+import { useParams } from "react-router-dom";
 import { Calendar, Clock, CreditCard, CheckCircle, Home, ArrowLeft, AlertCircle, Calculator } from "lucide-react";
-
-export default function BookingForm({ apartmentId = 1 }) { // Default apartmentId for demo
+import { jwtDecode } from "jwt-decode";
+import { createOrder, ORDER_TYPES } from "../../services/orderApi";
+export default function BookingForm() { // Default apartmentId for demo
   const [startMonth, setStartMonth] = useState("");
   const [endMonth, setEndMonth] = useState("");
   const [calculationData, setCalculationData] = useState({
@@ -17,6 +19,60 @@ export default function BookingForm({ apartmentId = 1 }) { // Default apartmentI
   const [bookingResult, setBookingResult] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const { apartmentId } = useParams(); // Lấy id từ URL
+
+  
+  useEffect(() => {
+  async function loadApartmentData() {
+    if (!apartmentId) {
+      setError("Không tìm thấy mã căn hộ.");
+      return;
+    }
+    try {
+      const apartment = await getApartmentById(Number(apartmentId));
+      setApartmentInfo(apartment);
+    } catch (err) {
+      setError("Lỗi khi tải thông tin căn hộ.");
+      console.error("Error loading apartment:", err);
+    }
+  }
+  loadApartmentData();
+}, [apartmentId]);
+
+  const getCurrentUserFromToken = () => {
+    const token = localStorage.getItem("token");
+    if (!token) return null;
+
+    try {
+      const decoded = jwtDecode(token);
+
+      // Ưu tiên claim chuẩn của ASP.NET cho nameidentifier, sau đó fallback
+      const userId =
+        decoded["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier"] ||
+        decoded.nameid ||
+        decoded.sub ||
+        decoded.userId ||
+        decoded.uid;
+
+      const email = decoded.email || decoded.sub || null;
+      const role =
+        decoded["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"] ||
+        decoded.role ||
+        null;
+
+      // Kiểm tra hết hạn (nếu có)
+      if (decoded.exp && Date.now() >= decoded.exp * 1000) {
+        console.warn("JWT đã hết hạn");
+        return null;
+      }
+
+      if (!userId) return null;
+      return { userId, email, role };
+    } catch (e) {
+      console.error("JWT decode error:", e);
+      return null;
+    }
+  };
 
   // Load apartment data on component mount
   useEffect(() => {
@@ -90,55 +146,82 @@ export default function BookingForm({ apartmentId = 1 }) { // Default apartmentI
   }, [startMonth, endMonth, apartmentInfo]);
 
   const handleSubmit = async () => {
-  if (!startMonth || !endMonth) {
-    alert("Vui lòng chọn thời gian thuê!");
-    return;
-  }
+    if (!startMonth || !endMonth) {
+      alert("Vui lòng chọn thời gian thuê!");
+      return;
+    }
 
-  if (calculationData.totalMonths < 1) {
-    alert("Thời gian thuê tối thiểu là 1 tháng!");
-    return;
-  }
+    if (calculationData.totalMonths < 1) {
+      alert("Thời gian thuê tối thiểu là 1 tháng!");
+      return;
+    }
 
-  if (!apartmentInfo) {
-    alert("Không thể tải thông tin căn hộ!");
-    return;
-  }
+    if (!apartmentInfo) {
+      alert("Không thể tải thông tin căn hộ!");
+      return;
+    }
 
-  const currentUser = JSON.parse(localStorage.getItem('user'));
-  const userId = currentUser?.userId;
+    const currentUser = getCurrentUserFromToken();
 
-  if (!userId) {
-    alert("Không tìm thấy thông tin người dùng!");
-    return;
-  }
+    if (!currentUser?.userId) {
+      alert("Không tìm thấy thông tin người dùng! Vui lòng đăng nhập lại.");
+      return;
+    }
 
 
-  setIsProcessing(true);
 
-  try {
-    const bookingData = {
-      apartmentId: apartmentInfo.id,
-      userId: userId,
-      rentalStartDate: startMonth,  
-      rentalEndDate: endMonth
-    };
+    setIsProcessing(true);
 
-    console.log('Sending booking data:', bookingData);
-    const result = await createBooking(bookingData);
-    console.log('Booking result:', result);
+    try {
+      const bookingData = {
+        apartmentId: apartmentInfo.id ?? apartmentInfo.apartmentId, // phòng khi BE trả tên khác
+        userId: currentUser.userId,
+        rentalStartDate: `${startMonth}-01`,  // ví dụ: "2025-09-01"
+        rentalEndDate: `${endMonth}-01`
+      };
 
-    setBookingResult(result);
-    setShowSuccess(true);
-  } catch (err) {
-    console.error('Error creating booking:', err);
-    const errorMessage = err.message || 'Có lỗi xảy ra khi đặt thuê. Vui lòng thử lại!';
-    alert(errorMessage);
-  } finally {
-    setIsProcessing(false);
-  }
-};
 
+      console.log('Sending booking data:', bookingData);
+      const result = await createBooking(bookingData);
+      console.log('Booking result:', result);
+
+      setBookingResult(result);
+      setShowSuccess(true);
+    } catch (err) {
+      console.error('Error creating booking:', err);
+      const errorMessage = err.message || 'Có lỗi xảy ra khi đặt thuê. Vui lòng thử lại!';
+      alert(errorMessage);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleDepositPayment = async () => {
+    if (!apartmentInfo) return;
+    setIsProcessing(true);
+    setError("");
+    try {
+      const payload = {
+        apartmentId: apartmentInfo.id ?? apartmentInfo.apartmentId,
+        apartmentName: apartmentInfo.name || apartmentInfo.title,
+        amount: calculationData.depositAmount,
+        orderType: ORDER_TYPES.DEPOSIT,
+        description: `Thanh toán tiền cọc cho căn hộ ${apartmentInfo.name || apartmentInfo.title}`,
+        forYear: null,
+        forMonth: null,
+      };
+      const res = await createOrder(payload);
+      if (res.paymentUrl) {
+        window.location.href = res.paymentUrl; // Chuyển sang VNPay
+      } else {
+        setError("Không nhận được link thanh toán. Vui lòng thử lại!");
+      }
+    } catch (err) {
+      setError(err.message || "Có lỗi xảy ra khi tạo đơn thanh toán cọc.");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
 
   const handleBackToDetail = () => {
     // navigate("/apartmentdetail");
@@ -240,8 +323,9 @@ export default function BookingForm({ apartmentId = 1 }) { // Default apartmentI
             </ol>
           </div>
           <button
-            onClick={handleBackToDetail}
+            onClick={handleDepositPayment}
             className="w-full bg-blue-600 text-white py-3 rounded-xl font-semibold hover:bg-blue-700 transition-colors"
+            disabled={isProcessing}
           >
             Tiến hành thanh toán cọc
           </button>
@@ -439,8 +523,8 @@ export default function BookingForm({ apartmentId = 1 }) { // Default apartmentI
           onClick={handleSubmit}
           disabled={isProcessing || calculationData.totalMonths === 0 || !apartmentInfo}
           className={`w-full py-4 rounded-xl font-semibold text-white transition-all duration-200 ${isProcessing || calculationData.totalMonths === 0 || !apartmentInfo
-              ? 'bg-gray-400 cursor-not-allowed'
-              : 'bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 transform hover:scale-105 shadow-lg hover:shadow-xl'
+            ? 'bg-gray-400 cursor-not-allowed'
+            : 'bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 transform hover:scale-105 shadow-lg hover:shadow-xl'
             }`}
         >
           {isProcessing ? (

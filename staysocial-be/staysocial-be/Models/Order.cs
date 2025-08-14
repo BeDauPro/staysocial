@@ -8,6 +8,7 @@ namespace staysocial_be.Models
     {
         public int OrderId { get; set; }
         public int BookingId { get; set; }
+        public int ApartmentId { get; set; }
 
         public decimal Amount { get; set; }
         public OrderType OrderType { get; set; }
