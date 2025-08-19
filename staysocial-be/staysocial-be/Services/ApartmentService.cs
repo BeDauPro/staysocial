@@ -71,7 +71,7 @@ namespace staysocial_be.Services
         {
             var apartment = await _context.Apartments
                 .Include(a => a.Owner)
-                .Include(a => a.Photos) // Thêm dòng này để include Photos
+                .Include(a => a.Photos)
                 .FirstOrDefaultAsync(a => a.ApartmentId == id);
 
             return apartment == null ? null : _mapper.Map<ApartmentDto>(apartment);
@@ -80,12 +80,13 @@ namespace staysocial_be.Services
         public async Task<IEnumerable<ApartmentDto>> GetApartmentsByOwnerAsync(string userId)
         {
             var apartments = await _context.Apartments
-                .Where(a => a.OwnerId == userId)
+                .Where(a => a.OwnerId == userId && a.Status == ApartmentStatus.Approved)
                 .ProjectTo<ApartmentDto>(_mapper.ConfigurationProvider)
                 .ToListAsync();
 
             return apartments;
         }
+
 
         public async Task<ApartmentDto> CreateAsync(CreateApartmentDto dto, string userId)
         {
@@ -99,9 +100,9 @@ namespace staysocial_be.Services
             apartment.Status = ApartmentStatus.Pending;
 
             _context.Apartments.Add(apartment);
-            await _context.SaveChangesAsync(); // Để lấy được apartment.Id
+            await _context.SaveChangesAsync();
 
-            // Xử lý ảnh nếu có
+
             if (dto.Photos != null && dto.Photos.Any())
             {
                 foreach (var photoFile in dto.Photos)

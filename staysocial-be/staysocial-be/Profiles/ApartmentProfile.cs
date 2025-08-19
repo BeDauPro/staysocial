@@ -14,6 +14,10 @@ namespace staysocial_be.Profiles
 
             CreateMap<CreateApartmentDto, Apartment>();
             CreateMap<UpdateApartmentDto, Apartment>();
+            CreateMap<Photo, PhotoDto>();
+            CreateMap<CreateApartmentDto, Apartment>()
+                .ForMember(dest => dest.Photos, opt => opt.Ignore());
+
         }
     }
 

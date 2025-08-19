@@ -80,6 +80,7 @@ function App() {
       {/* ApartmentDetail dùng chung cho cả User, Landlord và Admin */}
       <Route element={<PrivateRoute allowedRoles={["User", "Landlord", "Admin"]} />}>
         <Route path="/apartmentdetail/:id" element={<ApartmentDetailWrapper />} />
+        <Route path="/userprofile/:id" element={<UserProfile />} />
       </Route>
 
       <Route path="/unauthorized" element={<h2>Không có quyền truy cập</h2>} />

@@ -16,7 +16,7 @@ namespace staysocial_be.DTOs.Apartment
         public ApartmentStatus Status { get; set; }
 
         public DateTime CreatedAt { get; set; }
-         public List<PhotoDto> Photos { get; set; } = new List<PhotoDto>();
+        public List<PhotoDto> Photos { get; set; } = new List<PhotoDto>();
     }
 }
 

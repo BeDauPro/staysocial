@@ -49,43 +49,33 @@ const AddApartmentModal = ({ isOpen, onClose, onSubmit }) => {
     setPreviewUrls(newPreviewUrlsCopy);
   };
 
-  const handleSubmit = async () => {
-    if (!formData.name || !formData.address || !formData.price) {
-      alert('Vui lòng điền đầy đủ thông tin căn hộ!');
-      return;
-    }
+const handleSubmit = async () => {
+  if (!formData.name || !formData.address || !formData.price) {
+    alert('Vui lòng điền đầy đủ thông tin căn hộ!');
+    return;
+  }
 
-    try {
-      setIsLoading(true);
+  try {
+    setIsLoading(true);
 
-      // Upload ảnh lên server
-      const uploadedPhotos = [];
-      for (let file of newImages) {
-        const uploaded = await uploadPhoto(file);
-        uploadedPhotos.push(uploaded.url);
-      }
+    const apartmentData = {
+      ...formData,
+      photos: newImages, // 👈 quan trọng
+    };
 
-      // Chuẩn bị dữ liệu căn hộ
-      const apartmentData = {
-        ...formData,
-        imageUrls: uploadedPhotos,
-        availabilityStatus: 0, 
-        status: 1              
-      };
+    const created = await createApartment(apartmentData);
 
-      // Gọi API tạo căn hộ
-      const created = await createApartment(apartmentData);
+    alert("Tạo căn hộ thành công!");
+    onSubmit(created);
+    resetForm();
+  } catch (err) {
+    console.error("Lỗi khi tạo căn hộ:", err);
+    alert("Không thể tạo căn hộ!");
+  } finally {
+    setIsLoading(false);
+  }
+};
 
-      alert("Tạo căn hộ thành công!");
-      onSubmit(created); // Gửi dữ liệu về component cha nếu cần
-      resetForm();
-    } catch (err) {
-      console.error("Lỗi khi tạo căn hộ:", err);
-      alert("Không thể tạo căn hộ!");
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const resetForm = () => {
     setFormData({

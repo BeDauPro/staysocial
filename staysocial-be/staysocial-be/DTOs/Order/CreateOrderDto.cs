@@ -13,6 +13,5 @@ namespace staysocial_be.DTOs.Order
         public int? ForYear { get; set; }
         public int? ForMonth { get; set; }
     }
-
 }
 

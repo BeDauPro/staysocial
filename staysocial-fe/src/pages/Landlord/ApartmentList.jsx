@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import AddApartmentModal from './AddApartmentModal';
 import { useNavigate } from 'react-router-dom';
-import { getApprovedApartments, deleteApartment } from '../../services/apartmentApi'; 
+import { getApprovedApartments, deleteApartment, getMyApartments } from '../../services/apartmentApi'; 
 
 const ApartmentList = () => {
   const [apartments, setApartments] = useState([]);
@@ -22,20 +22,20 @@ const ApartmentList = () => {
 
   // Fetch data on mount
   useEffect(() => {
-    const fetchApartments = async () => {
-      try {
-        const data = await getApprovedApartments();
-        setApartments(data);
-      } catch (error) {
-        console.error('Lỗi khi tải căn hộ:', error);
-        alert('Không thể tải danh sách căn hộ');
-      } finally {
-        setLoading(false);
-      }
-    };
+  const fetchApartments = async () => {
+    try {
+      const data = await getMyApartments();
+      setApartments(data);
+    } catch (error) {
+      console.error('Lỗi khi tải căn hộ:', error);
+      alert('Không thể tải danh sách căn hộ');
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    fetchApartments();
-  }, []);
+  fetchApartments();
+}, []);
 
   const handleAddApartment = () => {
     setShowAddModal(true);

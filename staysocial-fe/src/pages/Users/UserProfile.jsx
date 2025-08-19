@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from "react";
-import { getMyProfile, updateMyProfile } from "../../services/appuserApi";
 import { Save, Edit2 } from "lucide-react";
+import { useParams } from "react-router-dom";
+import { getMyProfile, updateMyProfile, getUserById } from "../../services/appuserApi";
 
 export default function UserProfile() {
+  const { id } = useParams();
   const [profile, setProfile] = useState({
     fullName: "",
     email: "",
@@ -12,11 +14,17 @@ export default function UserProfile() {
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState(profile);
   const [isLoading, setIsLoading] = useState(true);
-
+  const role = localStorage.getItem("role");
+  const myId = localStorage.getItem("userId");
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const data = await getMyProfile();
+        let data;
+        if (id) {
+          data = await getUserById(id); // lấy user theo id nếu có
+        } else {
+          data = await getMyProfile(); // lấy profile của chính mình
+        }
         setProfile(data);
         setForm({
           fullName: data.fullName || "",
@@ -29,10 +37,10 @@ export default function UserProfile() {
       } finally {
         setIsLoading(false);
       }
+
     };
     fetchProfile();
-  }, []);
-
+  }, [id]);
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
@@ -77,7 +85,9 @@ export default function UserProfile() {
           <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
             Hồ Sơ Người Dùng
           </h1>
+          {(!id || id === myId) && role !== "admin" && (
           <p className="text-gray-600 mt-2">Quản lý thông tin cá nhân của bạn</p>
+          )}
         </div>
 
         {/* Profile Card */}
@@ -94,7 +104,7 @@ export default function UserProfile() {
                   </p>
                 </div>
               </div>
-              {!editing && (
+              {!editing && (!id || id === myId) && role !== "admin" && (
                 <button
                   onClick={() => setEditing(true)}
                   className="bg-white/20 hover:bg-white/30 text-white px-6 py-3 rounded-full transition-all duration-300 backdrop-blur-sm border border-white/30 hover:scale-105"

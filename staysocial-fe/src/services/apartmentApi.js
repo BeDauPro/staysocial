@@ -127,14 +127,30 @@ export const getMyApartments = async () => {
 };
 
 // 7. Tạo căn hộ mới (Landlord)
-export const createApartment = async (data) => {
+export const createApartment = async (apartment) => {
   try {
-    const res = await axiosInstance.post('', data); 
+    const formData = new FormData();
+    formData.append("Name", apartment.name);
+    formData.append("Address", apartment.address);
+    formData.append("Price", apartment.price);
+    formData.append("Amenities", apartment.amenities);
+
+    // nếu có nhiều ảnh
+    if (apartment.photos && apartment.photos.length > 0) {
+      apartment.photos.forEach((file) => {
+        formData.append("Photos", file);
+      });
+    }
+
+    const res = await axiosInstance.post('', formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
     return res.data;
   } catch (err) {
     throw handleError(err);
   }
 };
+
 
 
 // 8. Cập nhật căn hộ (Landlord/Admin)

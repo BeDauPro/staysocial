@@ -361,7 +361,6 @@ export default function ApartmentDetail({ apartmentId = 1 }) {
       alert('Vui lòng chọn số sao đánh giá');
       return;
     }
-
     if (userReview.trim() === '') {
       alert('Vui lòng nhập nội dung đánh giá');
       return;
@@ -370,9 +369,9 @@ export default function ApartmentDetail({ apartmentId = 1 }) {
     try {
       setSubmittingFeedback(true);
 
+
       const feedbackData = {
         apartmentId: apartmentId,
-        orderId: 1,
         rating: userRating,
         comment: userReview.trim()
       };
@@ -386,7 +385,6 @@ export default function ApartmentDetail({ apartmentId = 1 }) {
       setUserRating(0);
       setUserReview('');
       alert('Đánh giá đã được gửi thành công!');
-
     } catch (err) {
       console.error('Error submitting feedback:', err);
       alert('Có lỗi khi gửi đánh giá: ' + err.message);
@@ -394,6 +392,7 @@ export default function ApartmentDetail({ apartmentId = 1 }) {
       setSubmittingFeedback(false);
     }
   };
+
 
   const handleSubmitComment = async () => {
     if (userComment.trim() === '') {
@@ -567,8 +566,8 @@ export default function ApartmentDetail({ apartmentId = 1 }) {
                                   <Star
                                     key={star}
                                     className={`w-5 h-5 ${star <= Math.round(averageRating)
-                                        ? 'fill-yellow-400 text-yellow-400'
-                                        : 'text-gray-300'
+                                      ? 'fill-yellow-400 text-yellow-400'
+                                      : 'text-gray-300'
                                       }`}
                                   />
                                 ))}
@@ -813,14 +812,14 @@ export default function ApartmentDetail({ apartmentId = 1 }) {
                           onClick={() => handleReactionToggle('like')}
                           disabled={reactionLoading}
                           className={`flex-1 relative ${reactions.userReaction === 'like'
-                              ? 'bg-red-50 text-red-600 border-red-200'
-                              : 'hover:bg-red-50'
+                            ? 'bg-red-50 text-red-600 border-red-200'
+                            : 'hover:bg-red-50'
                             }`}
                         >
                           <Heart
                             className={`w-5 h-5 mr-2 ${reactions.userReaction === 'like'
-                                ? 'fill-red-500 text-red-500'
-                                : 'text-gray-400'
+                              ? 'fill-red-500 text-red-500'
+                              : 'text-gray-400'
                               }`}
                           />
                           <span className="flex items-center">
@@ -844,14 +843,14 @@ export default function ApartmentDetail({ apartmentId = 1 }) {
                           onClick={() => handleReactionToggle('dislike')}
                           disabled={reactionLoading}
                           className={`flex-1 relative ${reactions.userReaction === 'dislike'
-                              ? 'bg-gray-100 text-gray-700 border-gray-300'
-                              : 'hover:bg-gray-100'
+                            ? 'bg-gray-100 text-gray-700 border-gray-300'
+                            : 'hover:bg-gray-100'
                             }`}
                         >
                           <ThumbsDown
                             className={`w-5 h-5 mr-2 ${reactions.userReaction === 'dislike'
-                                ? 'text-gray-600'
-                                : 'text-gray-400'
+                              ? 'text-gray-600'
+                              : 'text-gray-400'
                               }`}
                           />
                           <span className="flex items-center">

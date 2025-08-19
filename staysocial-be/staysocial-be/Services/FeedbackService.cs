@@ -19,43 +19,37 @@ namespace staysocial_be.Services
 
         public async Task<FeedbackResponseDto> CreateFeedbackAsync(string userId, CreateFeedbackDto createFeedbackDto)
         {
-            // Kiểm tra order có tồn tại không
-            var order = await _context.Orders
-                .Where(o => o.OrderId == createFeedbackDto.OrderId)
+            // 1) Kiểm tra booking có thuộc về user và căn hộ này không
+            var bookingInfo = await _context.Bookings
+                .Where(b => b.UserId == userId && b.ApartmentId == createFeedbackDto.ApartmentId)
                 .FirstOrDefaultAsync();
 
-            if (order == null)
-                throw new KeyNotFoundException("Order not found.");
+            if (bookingInfo == null)
+                throw new InvalidOperationException("Bạn chưa thuê căn hộ này.");
 
-            // Kiểm tra booking có thuộc về user và apartment này không
-            var booking = await _context.Bookings
-                .Where(b => b.BookingId == order.BookingId &&
-                           b.UserId == userId &&
-                           b.ApartmentId == createFeedbackDto.ApartmentId)
+            // 2) Tìm order đã thanh toán của booking này
+            var matchedOrder = await _context.Orders
+                .Where(o => o.BookingId == bookingInfo.BookingId && o.Status == OrderStatus.Paid)
+                .OrderByDescending(o => o.OrderId) // lấy đơn gần nhất
                 .FirstOrDefaultAsync();
 
-            if (booking == null)
-                throw new UnauthorizedAccessException("You can only provide feedback for apartments you have rented.");
+            if (matchedOrder == null)
+                throw new InvalidOperationException("Đơn thuê chưa được thanh toán hoặc chưa hoàn tất.");
 
-            // Kiểm tra order đã được thanh toán thành công chưa
-            if (order.Status != OrderStatus.Paid) // Giả sử có status Paid
-                throw new InvalidOperationException("You can only provide feedback for completed orders.");
+            // 3) Kiểm tra đã đánh giá chưa
+            var alreadyReviewed = await _context.Feedbacks
+                .AnyAsync(f => f.UserId == userId && f.OrderId == matchedOrder.OrderId);
+            if (alreadyReviewed)
+                throw new InvalidOperationException("Bạn đã đánh giá đơn thuê này rồi.");
 
-            // Kiểm tra xem user đã feedback cho order này chưa
-            var existingFeedback = await _context.Feedbacks
-                .Where(f => f.UserId == userId && f.OrderId == createFeedbackDto.OrderId)
-                .FirstOrDefaultAsync();
-
-            if (existingFeedback != null)
-                throw new InvalidOperationException("You have already provided feedback for this rental.");
-
+            // 4) Tạo feedback
             var feedback = new Feedback
             {
                 UserId = userId,
                 ApartmentId = createFeedbackDto.ApartmentId,
-                OrderId = createFeedbackDto.OrderId,
+                OrderId = matchedOrder.OrderId,
                 Rating = createFeedbackDto.Rating,
-                Comment = createFeedbackDto.Comment,
+                Comment = createFeedbackDto.Comment?.Trim(),
                 CreatedAt = DateTime.UtcNow
             };
 
@@ -63,7 +57,9 @@ namespace staysocial_be.Services
             await _context.SaveChangesAsync();
 
             return await GetFeedbackResponseDto(feedback);
+
         }
+
 
         public async Task<FeedbackResponseDto> GetFeedbackByIdAsync(int feedbackId)
         {

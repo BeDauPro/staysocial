@@ -8,8 +8,9 @@ import {
   Phone
 } from 'lucide-react';
 import StatusBadge from './StatusBadge';
-
+import { useNavigate } from 'react-router-dom';
 const UsersTable = ({ users, onBan, onUnban, loading }) => {
+  const navigate = useNavigate();
   if (loading) {
     return (
       <div className="p-8 text-center">
@@ -112,19 +113,12 @@ const UsersTable = ({ users, onBan, onUnban, loading }) => {
                 <div className="flex space-x-2">
                   {/* Xem chi tiết */}
                   <button 
-                    className="text-blue-600 hover:text-blue-900 p-1 rounded hover:bg-blue-50"
-                    title="Xem chi tiết"
-                  >
-                    <Eye className="h-4 w-4" />
-                  </button>
-
-                  {/* Chỉnh sửa */}
-                  <button 
-                    className="text-gray-600 hover:text-gray-900 p-1 rounded hover:bg-gray-50"
-                    title="Chỉnh sửa"
-                  >
-                    <Edit className="h-4 w-4" />
-                  </button>
+                className="text-blue-600 hover:text-blue-900 p-1 rounded hover:bg-blue-50"
+                title="Xem chi tiết"
+                onClick={() => navigate(`/userprofile/${user.id}`)}
+              >
+                <Eye className="h-4 w-4" />
+              </button>
 
                   {/* Ban/Unban user - không áp dụng cho admin */}
                   {user.role?.toLowerCase() !== 'admin' && (
